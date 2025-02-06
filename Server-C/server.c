@@ -6,7 +6,8 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <unistd.h>
-#include <openssl/sha.h>
+#include "sha1.h"
+#include "base64.h"
 
 #define PORT 4444
 #define LISTEN_BACKLOG 50

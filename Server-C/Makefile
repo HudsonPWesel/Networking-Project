@@ -1,7 +1,7 @@
 CC=gcc
 CFLAGS=-I.
-deps = base64.h
-OBJ = server.o base64.o
+deps = base64.h sha1.h
+OBJ = server.o base64.o sha1.o
 
 # for any .o file, compile it from the corresponding .c file, while also depending on the headers in $(DEPS)"
 # $(DEPS) tell The dependency tells Make "rebuild this .o file if base64.h changesw"

@@ -14,7 +14,6 @@
 #define KEY_NAME_LENGTH 19
 #define KEY_LENGTH 24
 #define GUID_LENGTH 36
-#define SHA1_DIGEST_LENGTH 20
 
 int main(int argc, char const *argv[]) {
 
@@ -48,7 +47,7 @@ int main(int argc, char const *argv[]) {
     peer_addr_size = sizeof(client_addr);
 
     char web_socket_key[KEY_LENGTH + GUID_LENGTH + 1];
-    char sha1_digest [SHA1_DIGEST_LENGTH + 1];
+    char sha1_digest [SHA1_DIGEST_LENGTH];
 
     for (;;){
 
@@ -64,7 +63,8 @@ int main(int argc, char const *argv[]) {
         memcpy(web_socket_key, strstr(buffer,"Sec-WebSocket-Key")+KEY_NAME_LENGTH,KEY_LENGTH);
         web_socket_key[KEY_LENGTH] = '\0';
         strcat(web_socket_key,socket_guid);
-        SHA1(sha1_digest, web_socket_key, strlen(web_socket_key));
+        sha1_hash(web_socket_key, sha1_digest);
+        print_hash(sha1_digest);
 
         printf("\n Web Socket Key %s\n=====================\n Size of web_socket_key %lu\n", web_socket_key, sizeof(web_socket_key));
 

@@ -5,13 +5,11 @@ if (socket){
   console.log('WebSocket Created!');
 }
 
-// onopen
-socket.onopen = () => {console.log('Connection Established')};
+socket.onopen = (event) => {
+  console.log('Connection Established');
+  socket.send("Here's some text that the server is urgently awaiting!");
+};
 
 socket.send('Hello!');
 
-socket.addEventListener("message", (event) => {
-  console.log("Message from server ", event.data);
-});
-
-
+socket.onmessage = (event) => { console.log("Message from server ", event.data); };

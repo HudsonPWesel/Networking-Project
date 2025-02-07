@@ -10,6 +10,6 @@ socket.onopen = (event) => {
   socket.send("Here's some text that the server is urgently awaiting!");
 };
 
-socket.send('Hello!');
-
-socket.onmessage = (event) => { console.log("Message from server ", event.data); };
+socket.onmessage = (event) => { 
+  console.log("Message from server ", event.data); 
+};

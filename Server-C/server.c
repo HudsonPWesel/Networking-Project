@@ -63,7 +63,6 @@ int main(int argc, char const *argv[]) {
         web_socket_key[KEY_LENGTH] = '\0';
         strcat(web_socket_key,socket_guid);
 
-
         unsigned char sha1_digest[SHA1_DIGEST_LENGTH];
         sha1_hash(web_socket_key, sha1_digest);
 
@@ -79,11 +78,10 @@ int main(int argc, char const *argv[]) {
                 "HTTP/1.1 101 Switching Protocols\r\n"
                 "Upgrade: websocket\r\n"
                 "Connection: Upgrade\r\n"
-                "Sec-WebSocket-Accept: %s\r\n"
-                "\r\n",
+                "Sec-WebSocket-Accept: %s\r\n\r\n",
                 encoded_key);
-
         printf("\n ========= Response ========== \n%s",response);
+        
         write(client_fd, response, strlen(response));
 
       }else{

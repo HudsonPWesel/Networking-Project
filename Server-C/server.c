@@ -64,8 +64,11 @@ int main(int argc, char const *argv[]) {
         memcpy(web_socket_key, strstr(buffer,"Sec-WebSocket-Key")+KEY_NAME_LENGTH,KEY_LENGTH);
         web_socket_key[KEY_LENGTH] = '\0';
         strcat(web_socket_key,socket_guid);
+        SHA1(sha1_digest, web_socket_key, strlen(web_socket_key));
 
         printf("\n Web Socket Key %s\n=====================\n Size of web_socket_key %lu\n", web_socket_key, sizeof(web_socket_key));
+
+        printf("%s", sha1_digest);
 
       }else{
         printf("Sec-WebSocket-Key not found in request\n");
@@ -74,11 +77,8 @@ int main(int argc, char const *argv[]) {
       }
 
 
-
-      // Intiate handler respose
       // == Crafting Sec-WebSocket-Accept == BASE64(SHA-1(KEY + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11")) (this could be bac)
       // Remember each header line ends with \r\n and put an extra \r\n after the last one to indicate the end of the header):
-      //
       
     }
 

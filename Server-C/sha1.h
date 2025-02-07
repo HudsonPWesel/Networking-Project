@@ -1,52 +1,15 @@
-#ifndef SHA1_H
-#define SHA1_H
+#ifndef SHA1_UTIL_H
+#define SHA1_UTIL_H
 
-/*
-   SHA-1 in C
-   By Steve Reid <steve@edmweb.com>
-   100% Public Domain
- */
+#include <stdio.h>
+#include <CommonCrypto/CommonDigest.h>
 
-#include "stdint.h"
+#define SHA1_DIGEST_LENGTH CC_SHA1_DIGEST_LENGTH
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
+// Function to compute SHA1 hash
+void sha1_hash(const char *input, unsigned char output[SHA1_DIGEST_LENGTH]);
 
-typedef struct
-{
-    uint32_t state[5];
-    uint32_t count[2];
-    unsigned char buffer[64];
-} SHA1_CTX;
+// Function to print SHA1 hash in hex format
+void print_hash(unsigned char hash[SHA1_DIGEST_LENGTH]);
 
-void SHA1Transform(
-    uint32_t state[5],
-    const unsigned char buffer[64]
-    );
-
-void SHA1Init(
-    SHA1_CTX * context
-    );
-
-void SHA1Update(
-    SHA1_CTX * context,
-    const unsigned char *data,
-    uint32_t len
-    );
-
-void SHA1Final(
-    unsigned char digest[20],
-    SHA1_CTX * context
-    );
-
-void SHA1(
-    char *hash_out,
-    const char *str,
-    uint32_t len);
-
-#if defined(__cplusplus)
-}
-#endif
-
-#endif /* SHA1_H */
+#endif // SHA1_UTIL_H

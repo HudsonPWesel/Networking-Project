@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-I.
+CFLAGS=-I. -v 
 deps = base64.h sha1.h
 OBJ = server.o base64.o sha1.o
 

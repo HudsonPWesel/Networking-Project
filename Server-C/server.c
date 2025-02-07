@@ -4,8 +4,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <sys/socket.h> 
-#include <netinet/in.h>
-#include <unistd.h>
+#include <netinet/in.h> 
+#include <unistd.h> 
 #include "sha1.h"
 #include "base64.h"
 
@@ -47,7 +47,6 @@ int main(int argc, char const *argv[]) {
     peer_addr_size = sizeof(client_addr);
 
     char web_socket_key[KEY_LENGTH + GUID_LENGTH + 1];
-    char sha1_digest [SHA1_DIGEST_LENGTH];
 
     for (;;){
 
@@ -63,22 +62,35 @@ int main(int argc, char const *argv[]) {
         memcpy(web_socket_key, strstr(buffer,"Sec-WebSocket-Key")+KEY_NAME_LENGTH,KEY_LENGTH);
         web_socket_key[KEY_LENGTH] = '\0';
         strcat(web_socket_key,socket_guid);
+
+
+        unsigned char sha1_digest[SHA1_DIGEST_LENGTH];
         sha1_hash(web_socket_key, sha1_digest);
-        print_hash(sha1_digest);
 
-        printf("\n Web Socket Key %s\n=====================\n Size of web_socket_key %lu\n", web_socket_key, sizeof(web_socket_key));
+        char* encoded_key = base64_encode(sha1_digest, SHA1_DIGEST_LENGTH);
 
-        printf("%s", sha1_digest);
+        //printf("\n Web Socket Key %s\n=====================\n Size of web_socket_key %lu\n", web_socket_key, sizeof(web_socket_key));
+        printf("Encoded Key: %s\nSize: %lu\n", encoded_key, strlen(encoded_key));
+
+        char response[256];
+        memset(response,0,sizeof(response));
+
+        sprintf(response,
+                "HTTP/1.1 101 Switching Protocols\r\n"
+                "Upgrade: websocket\r\n"
+                "Connection: Upgrade\r\n"
+                "Sec-WebSocket-Accept: %s\r\n"
+                "\r\n",
+                encoded_key);
+
+        printf("\n ========= Response ========== \n%s",response);
+        write(client_fd, response, strlen(response));
 
       }else{
         printf("Sec-WebSocket-Key not found in request\n");
 
         exit(EXIT_FAILURE);
       }
-
-
-      // == Crafting Sec-WebSocket-Accept == BASE64(SHA-1(KEY + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11")) (this could be bac)
-      // Remember each header line ends with \r\n and put an extra \r\n after the last one to indicate the end of the header):
       
     }
 

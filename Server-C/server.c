@@ -84,6 +84,8 @@ int main(int argc, char const *argv[]) {
         
         write(client_fd, response, strlen(response));
 
+        // Send And recieve messages
+
       }else{
         printf("Sec-WebSocket-Key not found in request\n");
 

@@ -15,13 +15,11 @@
 #define false 0
 #define SA struct sockaddr
 void str_cli(FILE *fp, int sockfd);
-int main(int argc, char **argv) {
+
+int Socket(char *server_ip) {
     int sockfd;
     struct sockaddr_in servaddr;
-    if (argc != 2) {
-        printf("Usage: a.out <IPaddress>\n");
-        exit(1);
-    }
+
     if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
         printf("socket error\n");
         exit(2);
@@ -29,8 +27,8 @@ int main(int argc, char **argv) {
     bzero(&servaddr, sizeof(servaddr));
     servaddr.sin_family = AF_INET;
     servaddr.sin_port = htons(SERV_PORT); /*daytime server - normally 13*/
-    if (inet_pton(AF_INET, argv[1], &servaddr.sin_addr) <= 0)
-        printf("inet_pton error for %s\n", argv[1]);
+    if (inet_pton(AF_INET, server_ip, &servaddr.sin_addr) <= 0)
+        printf("inet_pton error for %s\n", server_ip);
     if (connect(sockfd, (SA *)&servaddr, sizeof(servaddr)) < 0) {
         printf("connect error\n");
         exit(3);
@@ -38,7 +36,16 @@ int main(int argc, char **argv) {
     str_cli(stdin, sockfd);
     exit(0);
 }
+
+int main(int argc, char **argv) {
+    if (argc != 2) {
+        printf("Usage: a.out <IPaddress>\n");
+        exit(1);
+    }
+}
+
 int max(int a, int b) { return (a > b) ? a : b; }
+
 void str_cli(FILE *fp, int sockfd) {
     char sendline[MAXLINE];
     char recvline[MAXLINE];

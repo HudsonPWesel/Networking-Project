@@ -26,6 +26,7 @@ typedef struct ServerState {
     int maxi;  // index into client[] array
     int maxfd;
     int client[FD_SETSIZE];
+    char usernames[MAXLINE][FD_SETSIZE];
     fd_set allset;
     fd_set rset;
     int listenfd;
@@ -63,7 +64,7 @@ int Socket() {
 }
 
 void process_client_data(ServerState *state){
-  int sockfd, n;
+  int sockfd, n, message_len;
   char buff [MAXLINE];
 
   for (int i = 0; i <= state->maxi; i++) {
@@ -83,10 +84,13 @@ void process_client_data(ServerState *state){
         if (strncmp(buff, "quit\n", 5) == 0 || strncmp(buff, "quit", 4) == 0) {
           printf("Client sent 'quit'. Responding with bye..\n");
           write(sockfd, "bye", strlen("bye"));
-        } else if (strncmp(buff,"broadcast",9) == 0){
+        } 
+        else if (strncmp(buff,"broadcast",9) == 0){
           for (int i = 0; i < FD_SETSIZE;i++) {
-            if(state->client[i] != -1 && state->client[i] != sockfd)
-              write(state->client[i], "SERVER [+] BROADCAST", strlen("SERVER [+] BROADCAST"));
+            if(state->client[i] != -1 && state->client[i] != sockfd){
+              message_len = snprintf(buff, MAXLINE, "SERVER BROADCAST from (%s)", state->usernames[i]);
+              write(state->client[i],buff,message_len);
+            }
           }
         }
         else
@@ -101,6 +105,7 @@ void process_new_connection(ServerState *state){
 
   struct sockaddr_in cli_addr;
   socklen_t cli_len = sizeof(cli_addr);
+  char username[MAXLINE];
   int i = 0;
 
   if (FD_ISSET(state->listenfd, &(state->rset))) {
@@ -114,6 +119,8 @@ void process_new_connection(ServerState *state){
 
     if (i < FD_SETSIZE) {
       state->client[i] = connfd;
+      read(connfd, state->usernames[i], MAXLINE); //TODO Handle potential error
+
     } else {
       printf("Too many clients!\n");
       exit(1);
@@ -128,8 +135,8 @@ void process_new_connection(ServerState *state){
 
     char client_ip[INET_ADDRSTRLEN];
     inet_ntop(AF_INET, &(cli_addr.sin_addr), client_ip, INET_ADDRSTRLEN);
-    printf("New client connected from %s:%d (fd: %d, slot: %d)\n", 
-           client_ip, ntohs(cli_addr.sin_port), connfd, i);
+    printf("New client (%s) connected from %s:%d (fd: %d, slot: %d)\n", 
+           state->usernames[i], client_ip, ntohs(cli_addr.sin_port), connfd, i);
 
   }
 }

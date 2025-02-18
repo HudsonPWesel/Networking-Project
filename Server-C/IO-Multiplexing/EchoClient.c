@@ -76,6 +76,8 @@ int Socket(char *server_ip, char *username) {
         exit(3);
     }
 
+    write(sockfd, username, strlen(username));
+
     str_cli(stdin, sockfd);
     exit(0);
 }

@@ -21,7 +21,6 @@ void str_cli(FILE *fp, int sockfd);
 void process_stdin_input(int sockfd, FILE * fp, fd_set rset, int *stdineof){
   char sendline [MAXLINE];
   int n;
-  char prefix [] = "[+] SERVER : ";
 
   if (FD_ISSET(fileno(fp), &rset)) {
     if ((n = read(fileno(fp), sendline, MAXLINE)) == 0) {
@@ -31,13 +30,13 @@ void process_stdin_input(int sockfd, FILE * fp, fd_set rset, int *stdineof){
     } else {
       sendline[n] = '\0';  
 
-      write(fileno(stdout), prefix, strlen(prefix));
       write(sockfd, sendline, n);
     }
   }
 }
 void process_socket_input(int sockfd){
   char recvline[MAXLINE];
+  char prefix [] = "[+] SERVER : ";
   int n;
 
   if ((n = read(sockfd, recvline, MAXLINE)) == 0) {
@@ -53,11 +52,13 @@ void process_socket_input(int sockfd){
   }
 
   recvline[n++] = '\n';  
+
+  write(fileno(stdout), prefix, strlen(prefix));
   write(fileno(stdout), recvline, n);
 
 }
 
-int Socket(char *server_ip) {
+int Socket(char *server_ip, char *username) {
     int sockfd;
     struct sockaddr_in servaddr;
 
@@ -74,17 +75,17 @@ int Socket(char *server_ip) {
         printf("connect error\n");
         exit(3);
     }
+
     str_cli(stdin, sockfd);
     exit(0);
 }
 
 int main(int argc, char **argv) {
-    if (argc != 2) {
-        printf("Usage: a.out <IPaddress>\n");
+    if (argc != 3) {
+        printf("Usage: a.out <IPaddress> <Username>\n");
         exit(1);
     }
-  int client_fd = Socket(argv[1]);
-
+  int client_fd = Socket(argv[1], argv[2]);
 }
 
 int max(int a, int b) { return (a > b) ? a : b; }

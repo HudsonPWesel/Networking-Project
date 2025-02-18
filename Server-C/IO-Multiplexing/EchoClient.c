@@ -17,6 +17,22 @@
 
 void str_cli(FILE *fp, int sockfd);
 
+
+void process_stdin_input(int sockfd, FILE * fp, fd_set rset, int *stdineof){
+  char sendline [MAXLINE];
+  int n;
+
+  if (FD_ISSET(fileno(fp), &rset)) {
+    if ((n = read(fileno(fp), sendline, MAXLINE)) == 0) {
+      * stdineof = 1;
+      shutdown(sockfd, SHUT_WR);  
+      FD_CLR(fileno(fp), &rset);
+    } else {
+      sendline[n] = '\0';  
+      write(sockfd, sendline, n);
+    }
+  }
+}
 void process_socket_input(int sockfd){
   char recvline[MAXLINE];
   int n;
@@ -64,14 +80,13 @@ int main(int argc, char **argv) {
 int max(int a, int b) { return (a > b) ? a : b; }
 
 void str_cli(FILE *fp, int sockfd) {
-    char sendline[MAXLINE];
     int maxfdp1;
-    int stdineof = 0;
     fd_set rset;
     int n;
+    int stdineof = 0;
+
     FD_ZERO(&rset);
     printf("Client ready\n");
-    sendline[0] = '\0';
 
     for (;;) {
       if (stdineof == 0) FD_SET(fileno(fp), &rset);
@@ -83,16 +98,6 @@ void str_cli(FILE *fp, int sockfd) {
         process_socket_input(sockfd);
 
     }
-        if (FD_ISSET(fileno(fp), &rset)) {
-            if ((n = read(fileno(fp), sendline, MAXLINE)) == 0) {
-                // probably received an EOF marker on stdin - ^d
-                stdineof = 1;
-                shutdown(sockfd, SHUT_WR);  
-                FD_CLR(fileno(fp), &rset);
-            } else {
-                sendline[n] = '\0';  
-                write(sockfd, sendline, n);
-            }
-        }
+        process_stdin_input(sockfd, fp, rset, &stdineof);
     }
 }

@@ -21,6 +21,7 @@ void str_cli(FILE *fp, int sockfd);
 void process_stdin_input(int sockfd, FILE * fp, fd_set rset, int *stdineof){
   char sendline [MAXLINE];
   int n;
+  char prefix [] = "[+] SERVER : ";
 
   if (FD_ISSET(fileno(fp), &rset)) {
     if ((n = read(fileno(fp), sendline, MAXLINE)) == 0) {
@@ -29,6 +30,8 @@ void process_stdin_input(int sockfd, FILE * fp, fd_set rset, int *stdineof){
       FD_CLR(fileno(fp), &rset);
     } else {
       sendline[n] = '\0';  
+
+      write(fileno(stdout), prefix, sizeof(prefix));
       write(sockfd, sendline, n);
     }
   }

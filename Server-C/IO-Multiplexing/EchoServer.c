@@ -70,6 +70,8 @@ void process_client_data(ServerState *state){
     if ((sockfd = state->client[i]) < 0) continue;
     if (FD_ISSET(sockfd, &(state->rset))) {
       if ((n = read(sockfd, buff, MAXLINE)) == 0) {
+        
+        // Closes connection
         close(sockfd);
         FD_CLR(sockfd, &(state->allset));
         state->client[i] = -1;

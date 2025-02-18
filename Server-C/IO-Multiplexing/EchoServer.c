@@ -85,7 +85,8 @@ void process_client_data(ServerState *state){
           write(sockfd, "bye", strlen("bye"));
         } else if (strncmp(buff,"broadcast",9) == 0){
           for (int i = 0; i < FD_SETSIZE;i++) {
-            write(state->client[i], "SERVER [+] BROADCAST", strlen("SERVER [+] BROADCAST"));
+            if(client[i] != -1 && client[i] != sender_sockfd)
+              write(state->client[i], "SERVER [+] BROADCAST", strlen("SERVER [+] BROADCAST"));
           }
         }
         else

@@ -79,7 +79,12 @@ void process_client_data(ServerState *state){
         buff[n - 1] = '\0';
         n--;
         printf("READ %d: %s\n", sockfd, buff);
-        write(sockfd, buff, n);
+
+        if (strncmp(buff, "quit\n", 5) == 0 || strncmp(buff, "quit", 4) == 0) {
+          printf("Client sent 'quit'. Responding with bye..\n");
+          write(sockfd, "bye", strlen("bye"));
+        }else
+          write(sockfd, buff, n);
         printf("WRITE %d: %s\n", sockfd, buff);
       }
     }

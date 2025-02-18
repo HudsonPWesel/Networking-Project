@@ -31,7 +31,7 @@ void process_stdin_input(int sockfd, FILE * fp, fd_set rset, int *stdineof){
     } else {
       sendline[n] = '\0';  
 
-      write(fileno(stdout), prefix, sizeof(prefix));
+      write(fileno(stdout), prefix, strlen(prefix));
       write(sockfd, sendline, n);
     }
   }
@@ -44,8 +44,15 @@ void process_socket_input(int sockfd){
     printf("str_cli: server terminated prematurely\n");
     exit(1);
   }
-  recvline[n++] = '\n';  
+
   recvline[n] = '\0';  
+
+  if (strncmp(recvline, "bye\n", 4) == 0 || strncmp(recvline, "bye", 3) == 0) {
+    printf("Client recevied 'bye'. Exiting...\n");
+    exit(2);
+  }
+
+  recvline[n++] = '\n';  
   write(fileno(stdout), recvline, n);
 
 }

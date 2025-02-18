@@ -36,7 +36,7 @@ void process_stdin_input(int sockfd, FILE * fp, fd_set rset, int *stdineof){
 }
 void process_socket_input(int sockfd){
   char recvline[MAXLINE];
-  char prefix [] = "[+] SERVER : ";
+  char prefix [] = "[+] SERVER  ";
   int n;
 
   if ((n = read(sockfd, recvline, MAXLINE)) == 0) {

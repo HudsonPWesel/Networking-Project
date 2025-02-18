@@ -64,8 +64,9 @@ int Socket() {
 }
 
 void process_client_data(ServerState *state){
-  int sockfd, n, message_len;
+  int sockfd, n, prefix_len;
   char buff [MAXLINE];
+  char temp_buff [MAXLINE];
 
   for (int i = 0; i <= state->maxi; i++) {
     if ((sockfd = state->client[i]) < 0) continue;
@@ -88,13 +89,17 @@ void process_client_data(ServerState *state){
         else if (strncmp(buff,"broadcast",9) == 0){
           for (int i = 0; i < FD_SETSIZE;i++) {
             if(state->client[i] != -1 && state->client[i] != sockfd){
-              message_len = snprintf(buff, MAXLINE, "SERVER BROADCAST from (%s)", state->usernames[i]);
-              write(state->client[i],buff,message_len);
+              // if want to send actual message need to use temp buffer
+              prefix_len = snprintf(temp_buff, MAXLINE, "SERVER BROADCAST from (%s)", state->usernames[i]);
+              write(state->client[i],temp_buff,prefix_len);
             }
           }
         }
-        else
+        else{
+          prefix_len = snprintf(temp_buff, MAXLINE, "(%s) | ", state->usernames[i]);
+          write(sockfd, temp_buff, prefix_len);
           write(sockfd, buff, n);
+        }
         printf("WRITE %d: %s\n", sockfd, buff);
       }
     }

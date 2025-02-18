@@ -83,7 +83,12 @@ void process_client_data(ServerState *state){
         if (strncmp(buff, "quit\n", 5) == 0 || strncmp(buff, "quit", 4) == 0) {
           printf("Client sent 'quit'. Responding with bye..\n");
           write(sockfd, "bye", strlen("bye"));
-        }else
+        } else if (strncmp(buff,"broadcast",9) == 0){
+          for (int i = 0; i < FD_SETSIZE;i++) {
+            write(state->client[i], "SERVER [+] BROADCAST", strlen("SERVER [+] BROADCAST"));
+          }
+        }
+        else
           write(sockfd, buff, n);
         printf("WRITE %d: %s\n", sockfd, buff);
       }

@@ -105,7 +105,6 @@ void process_new_connection(ServerState *state){
       printf("Too many clients!\n");
       exit(1);
     }
-    printf(" Client: %d fd: %d\n", i, connfd);
 
     FD_SET(connfd, &(state->allset));
     if (connfd > state->maxfd) 
@@ -113,7 +112,12 @@ void process_new_connection(ServerState *state){
         
     if (i > state->maxi) 
       state->maxi = i;
-    
+
+    char client_ip[INET_ADDRSTRLEN];
+    inet_ntop(AF_INET, &(cli_addr.sin_addr), client_ip, INET_ADDRSTRLEN);
+    printf("New client connected from %s:%d (fd: %d, slot: %d)\n", 
+           client_ip, ntohs(cli_addr.sin_port), connfd, i);
+
   }
 }
 

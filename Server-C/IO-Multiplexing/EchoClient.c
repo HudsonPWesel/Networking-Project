@@ -14,7 +14,22 @@
 #define true 1
 #define false 0
 #define SA struct sockaddr
+
 void str_cli(FILE *fp, int sockfd);
+
+void process_socket_input(int sockfd){
+  char recvline[MAXLINE];
+  int n;
+
+  if ((n = read(sockfd, recvline, MAXLINE)) == 0) {
+    printf("str_cli: server terminated prematurely\n");
+    exit(1);
+  }
+  recvline[n++] = '\n';  
+  recvline[n] = '\0';  
+  write(fileno(stdout), recvline, n);
+
+}
 
 int Socket(char *server_ip) {
     int sockfd;
@@ -42,55 +57,40 @@ int main(int argc, char **argv) {
         printf("Usage: a.out <IPaddress>\n");
         exit(1);
     }
+  int client_fd = Socket(argv[1]);
+
 }
 
 int max(int a, int b) { return (a > b) ? a : b; }
 
 void str_cli(FILE *fp, int sockfd) {
     char sendline[MAXLINE];
-    char recvline[MAXLINE];
     int maxfdp1;
-    int stdineof;
-    int n;
+    int stdineof = 0;
     fd_set rset;
-    stdineof = 0;
+    int n;
     FD_ZERO(&rset);
     printf("Client ready\n");
     sendline[0] = '\0';
+
     for (;;) {
-        if (stdineof == 0) FD_SET(fileno(fp), &rset);
-        FD_SET(sockfd, &rset);
-        maxfdp1 = max(fileno(fp), sockfd) + 1;
-        select(maxfdp1, &rset, NULL, NULL, NULL);
-        if (FD_ISSET(sockfd, &rset)) {
-            if ((n = read(sockfd, recvline, MAXLINE)) == 0) {
-                if (stdineof == 1)
-                    return;  // normal termination
-                else {
-                    printf("str_cli: server terminated prematurely\n");
-                    exit(1);
-                }
-            }
-            recvline[n++] = '\n';  // server does not add on the newline.
-            // need that for the output if you use
-            // the write system call. See next comment.
-            recvline[n] = '\0';  // really don't need this if you use n in
-            // the write function. If you want to use
-            // strlen, then you need to put put in a
-            // NULL char since the read function does not.
-            write(fileno(stdout), recvline, n);
-        }
+      if (stdineof == 0) FD_SET(fileno(fp), &rset);
+      FD_SET(sockfd, &rset);
+      maxfdp1 = max(fileno(fp), sockfd) + 1;
+      select(maxfdp1, &rset, NULL, NULL, NULL);
+
+      if (FD_ISSET(sockfd, &rset)){
+        process_socket_input(sockfd);
+
+    }
         if (FD_ISSET(fileno(fp), &rset)) {
             if ((n = read(fileno(fp), sendline, MAXLINE)) == 0) {
                 // probably received an EOF marker on stdin - ^d
                 stdineof = 1;
-                shutdown(sockfd, SHUT_WR);  // end FIN
+                shutdown(sockfd, SHUT_WR);  
                 FD_CLR(fileno(fp), &rset);
             } else {
-                sendline[n] = '\0';  // really don't need this if you use n in
-                // the write function. If you want to use
-                // strlen, then you need to put put in a
-                // NULL char since the read function does not.
+                sendline[n] = '\0';  
                 write(sockfd, sendline, n);
             }
         }

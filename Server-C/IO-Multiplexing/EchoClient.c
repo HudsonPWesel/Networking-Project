@@ -1,5 +1,6 @@
 // To compiler: gcc -Wall EchoClient.c -o EC
 // To run: ./EC <server IP address>
+// test
 #include <arpa/inet.h>
 #include <errno.h>
 #include <stdio.h>

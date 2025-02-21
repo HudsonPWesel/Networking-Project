@@ -18,5 +18,4 @@ OBJ = server.o base64.o sha1.o
 
 server: $(OBJ)
 	$(CC) -o $@ $^ $(CFLAGS) # expanded gcc -o server server.o base64.o
-clean:
-	rm -f $(OBJ) server
+	rm -f $(OBJ) 

@@ -44,8 +44,10 @@ void initialize_state(ServerState *state, int listenfd){
 
   FD_ZERO(&(state->allset));
   FD_SET(listenfd, &(state->allset));
+  printf("\n Listener FD : %d : isset : %d ",listenfd, FD_ISSET(listenfd, &(state->allset)));
 
 }
+
 void process_new_connection(ServerState *state){
 
   struct sockaddr_in cli_addr;
@@ -73,6 +75,9 @@ void process_new_connection(ServerState *state){
     if (key_start) respond_handshake(key_start, connfd);
 
     FD_SET(connfd, &(state->allset));
+    state->client[i] = connfd;
+    printf("FD_ISSET check (expected 1): %d\n", FD_ISSET(connfd, &(state->allset)));
+
     if (connfd > state->maxfd) 
       state->maxfd = connfd;
 
@@ -81,11 +86,36 @@ void process_new_connection(ServerState *state){
 
     char client_ip[INET_ADDRSTRLEN];
     inet_ntop(AF_INET, &(cli_addr.sin_addr), client_ip, INET_ADDRSTRLEN);
-    printf("New client () connected from %s:%d (fd: %d, slot: %d)\n", 
-           client_ip, ntohs(cli_addr.sin_port), connfd, i);
+    printf("New client () connected from %s:%d (fd: %d, slot: %d, isset: %d)\n", 
+           client_ip, ntohs(cli_addr.sin_port), state->client[i], i, FD_ISSET(connfd, &state->allset));
+  }
 }
 
+void process_client_data(ServerState *state){
+  int current_fd, read_bytes;
+  char buffer[MAXLINE];
+  bzero(&buffer,strlen(buffer));
+
+
+  for (int i = 0;i < state->maxi;i++) {
+    if((current_fd = state->client[i]) < 0) continue;
+    if(FD_ISSET(current_fd, &state->rset) ) {
+      printf("Printing Data...");
+      if ((read_bytes = read(state->client[i], buffer,strlen(buffer))) == 0){
+        close(current_fd);
+        FD_CLR(current_fd, &state->rset);
+        state->client[i] = -1;
+      }else {
+        buffer[read_bytes - 1] = '\0';
+        printf("%s", buffer);
+      }
+
+    }
   }
+
+}
+
+
 
 void respond_handshake(char *key_start, int client_fd) {
   char web_socket_key[KEY_LENGTH + GUID_LENGTH + 1];
@@ -121,20 +151,18 @@ void respond_handshake(char *key_start, int client_fd) {
 }
 
 int main(int argc, char const *argv[]) {
-  int server_fd, client_fd;
-  socklen_t peer_addr_size;
+  int server_fd;
 
   char buffer[MAXLINE];
   bzero(&buffer, sizeof(buffer));
 
-  struct sockaddr_in server_addr, client_addr;
+  struct sockaddr_in server_addr;
+
   bzero(&server_addr, sizeof(server_addr));
 
   server_addr.sin_family = AF_INET;
   server_addr.sin_port = htons(PORT);
   server_addr.sin_addr.s_addr = INADDR_ANY;
-
-  peer_addr_size = sizeof(client_addr);
 
   if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
     perror("Socket Error");
@@ -157,13 +185,12 @@ int main(int argc, char const *argv[]) {
   for (;;) {
     state.rset = state.allset;
     int nready = select(state.maxfd + 1, &(state.rset), NULL, NULL, NULL);
-
     if (nready < 0){
       perror("Select Error");
       continue;
     }
     process_new_connection(&state);
-
+    process_client_data(&state);
   }
 
   return 0;

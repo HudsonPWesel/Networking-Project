@@ -14,10 +14,22 @@
 #define KEY_NAME_LENGTH 19
 #define KEY_LENGTH 24
 #define GUID_LENGTH 36
+#define MAXLINE 1024
+
+typedef struct ServerState {
+    int maxi;  // index into client[] array
+    int maxfd;
+    int client[FD_SETSIZE];
+    char usernames[MAXLINE][FD_SETSIZE];
+    fd_set allset;
+    fd_set rset;
+    int listenfd;
+
+} ServerState;
 
 int main(int argc, char const *argv[]) {
 
-    char buffer[1024];
+    char buffer[MAXLINE];
     memset(buffer, 0, sizeof(buffer));
 
     char const socket_guid [37] = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
@@ -27,6 +39,7 @@ int main(int argc, char const *argv[]) {
     struct sockaddr_in server_addr, client_addr;
 
     memset(&server_addr,0,sizeof(server_addr));
+
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(PORT);
     server_addr.sin_addr.s_addr = INADDR_ANY;
@@ -50,7 +63,9 @@ int main(int argc, char const *argv[]) {
 
     for (;;){
 
-      client_fd = accept(server_fd, (struct sockaddr *)&client_addr, &peer_addr_size);
+    if((client_fd = accept(server_fd, (struct sockaddr *)&client_addr, &peer_addr_size)) < 0){
+      fprintf(stderr, "accept error\n");
+    }
 
     if(client_fd != -1){
       read(client_fd, buffer, sizeof(buffer));
@@ -68,11 +83,11 @@ int main(int argc, char const *argv[]) {
 
         char* encoded_key = base64_encode(sha1_digest, SHA1_DIGEST_LENGTH);
 
-        //printf("\n Web Socket Key %s\n=====================\n Size of web_socket_key %lu\n", web_socket_key, sizeof(web_socket_key));
         printf("Encoded Key: %s\nSize: %lu\n", encoded_key, strlen(encoded_key));
 
         char response[256];
         memset(response,0,sizeof(response));
+        memset(buffer,0,sizeof(buffer));
 
         sprintf(response,
                 "HTTP/1.1 101 Switching Protocols\r\n"
@@ -80,11 +95,9 @@ int main(int argc, char const *argv[]) {
                 "Connection: Upgrade\r\n"
                 "Sec-WebSocket-Accept: %s\r\n\r\n",
                 encoded_key);
-        printf("\n ========= Response ========== \n%s",response);
         
         write(client_fd, response, strlen(response));
 
-        // Send And recieve messages
 
       }else{
         printf("Sec-WebSocket-Key not found in request\n");
@@ -93,8 +106,6 @@ int main(int argc, char const *argv[]) {
       }
       
     }
-
-
   }
 
   return 0;

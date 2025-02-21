@@ -13,3 +13,13 @@ socket.onopen = (event) => {
 socket.onmessage = (event) => { 
   console.log("Message from server ", event.data); 
 };
+
+
+const form = document.getElementById("message-form");
+const submitter = document.querySelector("input[name=message]");
+
+const formData = new FormData(form, submitter);
+
+for (const [key, value] of formData){
+  console.log(value);
+}

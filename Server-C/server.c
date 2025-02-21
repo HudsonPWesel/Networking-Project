@@ -44,7 +44,6 @@ void initialize_state(ServerState *state, int listenfd){
 
   FD_ZERO(&(state->allset));
   FD_SET(listenfd, &(state->allset));
-  printf("\n Listener FD : %d : isset : %d ",listenfd, FD_ISSET(listenfd, &(state->allset)));
 
 }
 
@@ -76,32 +75,32 @@ void process_new_connection(ServerState *state){
 
     FD_SET(connfd, &(state->allset));
     state->client[i] = connfd;
-    printf("FD_ISSET check (expected 1): %d\n", FD_ISSET(connfd, &(state->allset)));
 
     if (connfd > state->maxfd) 
       state->maxfd = connfd;
 
-    if (i > state->maxi) 
+    if (i > state->maxi) {
       state->maxi = i;
+    }
 
     char client_ip[INET_ADDRSTRLEN];
     inet_ntop(AF_INET, &(cli_addr.sin_addr), client_ip, INET_ADDRSTRLEN);
-    printf("New client () connected from %s:%d (fd: %d, slot: %d, isset: %d)\n", 
-           client_ip, ntohs(cli_addr.sin_port), state->client[i], i, FD_ISSET(connfd, &state->allset));
+    printf("New client () connected from %s:%d (fd: %d, slot: %d)\n", 
+           client_ip, ntohs(cli_addr.sin_port), state->client[i], i);
   }
 }
 
 void process_client_data(ServerState *state){
   int current_fd, read_bytes;
+
   char buffer[MAXLINE];
-  bzero(&buffer,strlen(buffer));
+  bzero(&buffer,sizeof(buffer));
 
-
-  for (int i = 0;i < state->maxi;i++) {
+  for (int i = 0;i < state->maxi + 1;i++) {
     if((current_fd = state->client[i]) < 0) continue;
     if(FD_ISSET(current_fd, &state->rset) ) {
       printf("Printing Data...");
-      if ((read_bytes = read(state->client[i], buffer,strlen(buffer))) == 0){
+      if ((read_bytes = read(state->client[i], buffer,sizeof(buffer))) == 0){
         close(current_fd);
         FD_CLR(current_fd, &state->rset);
         state->client[i] = -1;

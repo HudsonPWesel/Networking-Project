@@ -1,25 +1,24 @@
 let socket = new WebSocket('ws://10.240.233.102:4444');
 
 if (socket){
-  console.log(socket);
-  console.log('WebSocket Created!');
+  //console.log(socket);
+  console.log('websocket created!');
 }
 
 socket.onopen = (event) => {
-  console.log('Connection Established');
-  socket.send("Here's some text that the server is urgently awaiting!");
+  console.log('connection established');
+  socket.send("here's some text that the server is urgently awaiting!");
 };
 
 socket.onmessage = (event) => { 
-  console.log("Message from server ", event.data); 
+  console.log("message from server ", event.data); 
 };
 
+const form = document.getElementById("form");
 
-const form = document.getElementById("message-form");
-const submitter = document.querySelector("input[name=message]");
-
-const formData = new FormData(form, submitter);
-
-for (const [key, value] of formData){
-  console.log(value);
-}
+form.addEventListener("submit", event => {
+  event.preventDefault();
+  const payload = document.querySelector("input[name=message]").value;
+  console.log(`Message : ${payload}`);
+  socket.send(payload);
+});

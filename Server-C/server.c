@@ -184,8 +184,9 @@ int main(int argc, char const *argv[]) {
   for (;;) {
     state.rset = state.allset;
     int nready = select(state.maxfd + 1, &(state.rset), NULL, NULL, NULL);
+
     if (nready < 0){
-      perror("Select Error");
+      perror("None Ready");
       continue;
     }
     process_new_connection(&state);

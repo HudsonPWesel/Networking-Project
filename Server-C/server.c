@@ -85,6 +85,8 @@ void initialize_state(ServerState *state, int listenfd) {
 
 void process_new_connection(ServerState *state) {
 
+  printf("Proessing Conn...\n");
+
   struct sockaddr_in cli_addr;
   socklen_t cli_len = sizeof(cli_addr);
   int i = 0;
@@ -165,7 +167,8 @@ void respond_handshake(char *key_start, int client_fd) {
   strcat(web_socket_key, socket_guid);
 
   unsigned char sha1_digest[SHA_DIGEST_LENGTH];
-  SHA1((unsigned char *) web_socket_key, SHA_DIGEST_LENGTH, sha1_digest);
+  SHA1((unsigned char *) web_socket_key, strlen(web_socket_key), sha1_digest);
+
 
   char *encoded_key = base64_encode(sha1_digest, SHA_DIGEST_LENGTH);
 

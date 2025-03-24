@@ -1,4 +1,4 @@
-let socket = new WebSocket('ws://10.240.233.102:4444');
+let socket = new WebSocket('ws://127.0.0.1:4444');
 
 if (socket){
   //console.log(socket);
@@ -6,7 +6,7 @@ if (socket){
 }
 
 socket.onopen = (event) => {
-  console.log('connection established');
+  console.log('connection established and socket is open');
   socket.send("here's some text that the server is urgently awaiting!");
 };
 

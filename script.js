@@ -1,24 +1,36 @@
-let socket = new WebSocket('ws://127.0.0.1:4444');
+const socket = new WebSocket('ws://localhost:4242/ws');
 
-if (socket){
-  //console.log(socket);
-  console.log('websocket created!');
-}
-
+// Add comprehensive logging for each WebSocket event
 socket.onopen = (event) => {
-  console.log('connection established and socket is open');
-  socket.send("here's some text that the server is urgently awaiting!");
+    console.log('WebSocket connection established');
+    console.log('ReadyState:', socket.readyState);
+    socket.send("Initial connection message");
 };
 
-socket.onmessage = (event) => { 
-  console.log("message from server ", event.data); 
+socket.onmessage = (event) => {
+    console.log("Received message from server:", event.data);
 };
 
-const form = document.getElementById("form");
+socket.onerror = (error) => {
+    console.error("WebSocket Error Details:", {
+        error: error,
+        readyState: socket.readyState
+    });
+};
 
-form.addEventListener("submit", event => {
-  event.preventDefault();
-  const payload = document.querySelector("input[name=message]").value;
-  console.log(`Message : ${payload}`);
-  socket.send(payload);
-});
+socket.onclose = (event) => {
+    console.log("WebSocket closed with details:", {
+        code: event.code,
+        reason: event.reason,
+        wasClean: event.wasClean
+    });
+};
+
+// Optional: Check connection status periodically
+setInterval(() => {
+    console.log('Current WebSocket State:', {
+        readyState: socket.readyState,
+        // 0: CONNECTING, 1: OPEN, 2: CLOSING, 3: CLOSED
+        readyStateDescription: ['Connecting', 'Open', 'Closing', 'Closed'][socket.readyState]
+    });
+}, 5000);

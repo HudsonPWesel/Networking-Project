@@ -1,17 +1,17 @@
 #include <arpa/inet.h>
 #include <errno.h>
 #include <netinet/in.h>
+#include <openssl/sha.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
-#include <openssl/sha.h>
 
 #include "base64.h"
 
-#define PORT 4444
+#define PORT 9999
 #define LISTEN_BACKLOG 50
 #define KEY_NAME_LENGTH 19
 #define KEY_LENGTH 24
@@ -84,7 +84,6 @@ void initialize_state(ServerState *state, int listenfd) {
 }
 
 void process_new_connection(ServerState *state) {
-
   printf("Proessing Conn...\n");
 
   struct sockaddr_in cli_addr;
@@ -111,6 +110,8 @@ void process_new_connection(ServerState *state) {
     read(connfd, buffer, sizeof(buffer));
     printf("%s", buffer);
     char *key_start = strstr(buffer, "Sec-WebSocket-Key");
+    printf("Received data: %s\n", buffer);
+
     if (key_start)
       respond_handshake(key_start, connfd);
 
@@ -155,6 +156,8 @@ void process_client_data(ServerState *state) {
 }
 
 void respond_handshake(char *key_start, int client_fd) {
+  printf("RUNNING");
+
   char web_socket_key[KEY_LENGTH + GUID_LENGTH + 1];
 
   char const socket_guid[37] = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
@@ -167,8 +170,7 @@ void respond_handshake(char *key_start, int client_fd) {
   strcat(web_socket_key, socket_guid);
 
   unsigned char sha1_digest[SHA_DIGEST_LENGTH];
-  SHA1((unsigned char *) web_socket_key, strlen(web_socket_key), sha1_digest);
-
+  SHA1((unsigned char *)web_socket_key, strlen(web_socket_key), sha1_digest);
 
   char *encoded_key = base64_encode(sha1_digest, SHA_DIGEST_LENGTH);
 
@@ -182,7 +184,10 @@ void respond_handshake(char *key_start, int client_fd) {
           "HTTP/1.1 101 Switching Protocols\r\n"
           "Upgrade: websocket\r\n"
           "Connection: Upgrade\r\n"
-          "Sec-WebSocket-Accept: %s\r\n\r\n",
+          "Sec-WebSocket-Accept: %s\r\n"
+          "Access-Control-Allow-Origin: *\r\n" // Allow requests from any origin
+          "Access-Control-Allow-Methods: GET, POST\r\n"
+          "Access-Control-Allow-Headers: content-type\r\n\r\n",
           encoded_key);
 
   write(client_fd, response, strlen(response));

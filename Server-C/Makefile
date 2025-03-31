@@ -1,22 +1,32 @@
-CC=gcc
-CFLAGS=-I. -g -Wall
-deps = base64.h 
-OBJ = server.o base64.o -lcrypto
+# Compiler
+CC = gcc
 
-# for any .o file, compile it from the corresponding .c file, while also depending on the headers in $(DEPS)"
-# $(DEPS) tell The dependency tells Make "rebuild this .o file if base64.h changesw"
-# $@ -> Target (server.o)
-# $<  $< ALWAYS refers to the first prerequisite listed after the colon : (server.c)
 
-%.o: %.c $(deps)
-	$(CC) $(CFLAGS) -c -o $@ $< # expanded version gcc -c -o server.o server.c 
-	#   creates the final executable by linking all the object files together
-	# 	make with no arguments, it tries to build the first target in the Makefile "default goal"
-	# 	So before Make can build server, it needs both server.o and base64.o 
-	# 	It finds the pattern rule %.o: %.c $(DEPS) that matches above and uses that rule to build the .o file
+# Linker flags
 
-server: $(OBJ)
-	$(CC)  -o $@ $^ $(CFLAGS) # expanded gcc -o server server.o base64.o
+LDFLAGS="-L /opt/homebrew/opt/openssl@3.4" \
+CPPFLAGS="-I /opt/homebrew/opt/openssl@3.4/include" \
 
+# Source files
+SRCS = server.c
+
+# Object files
+OBJS = $(SRCS:.c=.o)
+
+# Target executable
+TARGET = server
+
+# Default target
+all: $(TARGET)
+
+# Linking the executable
+$(TARGET): $(OBJS)
+	$(CC) $(OBJS) -o $(TARGET) $(LDFLAGS) $(LDLIBS)
+
+# Compiling the source files
+%.o: %.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+# Cleaning up
 clean:
-	rm -f $(OBJ) server
+	rm -f $(OBJS) $(TARGET)

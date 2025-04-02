@@ -1,6 +1,9 @@
 #include <arpa/inet.h>
 #include <errno.h>
 #include <netinet/in.h>
+#include <openssl/bio.h>
+#include <openssl/evp.h>
+#include <openssl/sha.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -21,6 +24,72 @@
 #else
 #define GETSOCKETERRNO() (errno)
 #endif
+
+#include <assert.h>
+
+size_t calcDecodeLength(
+    const char *b64input) { // Calculates the length of a decoded string
+  size_t len = strlen(b64input), padding = 0;
+
+  if (b64input[len - 1] == '=' &&
+      b64input[len - 2] == '=') // last two chars are =
+    padding = 2;
+  else if (b64input[len - 1] == '=') // last char is =
+    padding = 1;
+
+  return (len * 3) / 4 - padding;
+}
+
+int Base64Decode(char *b64message, unsigned char **buffer,
+                 size_t *length) { // Decodes a base64 encoded string
+  BIO *bio, *b64;
+
+  int decodeLen = calcDecodeLength(b64message);
+  *buffer = (unsigned char *)malloc(decodeLen + 1);
+  (*buffer)[decodeLen] = '\0';
+
+  bio = BIO_new_mem_buf(b64message, -1);
+  b64 = BIO_new(BIO_f_base64());
+  bio = BIO_push(b64, bio);
+
+  BIO_set_flags(bio,
+                BIO_FLAGS_BASE64_NO_NL); // Do not use newlines to flush buffer
+  *length = BIO_read(bio, *buffer, strlen(b64message));
+  assert(*length == decodeLen); // length should equal decodeLen, else something
+                                // went horribly wrong
+  BIO_free_all(bio);
+
+  return (0); // success
+}
+
+// Encodes Base64
+#include <openssl/bio.h>
+#include <openssl/buffer.h>
+#include <openssl/evp.h>
+#include <stdint.h>
+
+int Base64Encode(const unsigned char *buffer, size_t length,
+                 char **b64text) { // Encodes a binary safe base 64 string
+  BIO *bio, *b64;
+  BUF_MEM *bufferPtr;
+
+  b64 = BIO_new(BIO_f_base64());
+  bio = BIO_new(BIO_s_mem());
+  bio = BIO_push(b64, bio);
+
+  BIO_set_flags(
+      bio,
+      BIO_FLAGS_BASE64_NO_NL); // Ignore newlines - write everything in one line
+  BIO_write(bio, buffer, length);
+  BIO_flush(bio);
+  BIO_get_mem_ptr(bio, &bufferPtr);
+  BIO_set_close(bio, BIO_NOCLOSE);
+  BIO_free_all(bio);
+
+  *b64text = (*bufferPtr).data;
+
+  return (0); // success
+}
 
 typedef struct ServerState {
   int maxi; // index into client[] array
@@ -65,6 +134,7 @@ void websocket_decode(char *buffer, int length) {
   //     payload_len += buffer[i];
   //   mask_offset = 10;
   // }
+  printf("Hello World");
 }
 
 void initialize_state(ServerState *state, int listenfd) {
@@ -166,10 +236,13 @@ void respond_handshake(char *key_start, int client_fd) {
   web_socket_key[KEY_LENGTH] = '\0';
   strcat(web_socket_key, socket_guid);
 
-  unsigned char sha1_digest[SHA_DIGEST_LENGTH];
-  SHA1((unsigned char *)web_socket_key, strlen(web_socket_key), sha1_digest);
+  char sha1_digest[SHA_DIGEST_LENGTH];
+  SHA1(web_socket_key, strlen(web_socket_key), sha1_digest);
 
-  char *encoded_key = base64_encode(sha1_digest, SHA_DIGEST_LENGTH);
+  char *encoded_key;
+
+  Base64Encode((const unsigned char *)sha1_digest, strlen(sha1_digest),
+               &encoded_key);
 
   printf("Encoded Key: %s\nSize: %lu\n", encoded_key, strlen(encoded_key));
 

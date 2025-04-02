@@ -1,6 +1,8 @@
+#include "base64.h"
 #include <arpa/inet.h>
 #include <errno.h>
 #include <netinet/in.h>
+#include <openssl/sha.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -107,7 +109,7 @@ void process_new_connection(ServerState *state) {
     read(connfd, buffer, sizeof(buffer));
     printf("%s", buffer);
     char *key_start = strstr(buffer, "Sec-WebSocket-Key");
-    printf("Received data: %s\n", buffer);
+    printf("%s\n", key_start);
 
     if (key_start)
       respond_handshake(key_start, connfd);
@@ -169,7 +171,7 @@ void respond_handshake(char *key_start, int client_fd) {
   unsigned char sha1_digest[SHA_DIGEST_LENGTH];
   SHA1((unsigned char *)web_socket_key, strlen(web_socket_key), sha1_digest);
 
-  char *encoded_key = base64_encode(sha1_digest, SHA_DIGEST_LENGTH);
+  char *encoded_key = base64_encode((char *)sha1_digest);
 
   printf("Encoded Key: %s\nSize: %lu\n", encoded_key, strlen(encoded_key));
 
@@ -191,6 +193,8 @@ void respond_handshake(char *key_start, int client_fd) {
 }
 
 int main(int argc, char const *argv[]) {
+  printf("Running Server...\n");
+
   int server_fd;
 
   char buffer[MAXLINE];
@@ -231,6 +235,7 @@ int main(int argc, char const *argv[]) {
   for (;;) {
     state.rset = state.allset;
     int nready = select(state.maxfd + 1, &(state.rset), NULL, NULL, NULL);
+    printf("N Ready %d\n", nready);
 
     if (nready < 0) {
       perror("None Ready");

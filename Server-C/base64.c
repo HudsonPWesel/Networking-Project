@@ -1,32 +1,74 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+/***********************************************************
+ * Base64 library implementation                            *
+ * @author Ahmed Elzoughby                                  *
+ * @date July 23, 2017                                      *
+ ***********************************************************/
 
-char *base64_encode(const unsigned char *input, size_t length) {
-  static const char encode_table[] =
-      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-  char *output = malloc((4 * ((length + 2) / 3)) + 1);
-  size_t i, j = 0;
+#include "base64.h"
 
-  for (i = 0; i < length; i += 3) {
-    unsigned int octet_a = i < length ? input[i] : 0;
-    unsigned int octet_b = i + 1 < length ? input[i + 1] : 0;
-    unsigned int octet_c = i + 2 < length ? input[i + 2] : 0;
+char base46_map[] = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K',
+                     'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V',
+                     'W', 'X', 'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f', 'g',
+                     'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r',
+                     's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '0', '1', '2',
+                     '3', '4', '5', '6', '7', '8', '9', '+', '/'};
 
-    unsigned int triple = (octet_a << 16) + (octet_b << 8) + octet_c;
+char *base64_encode(char *plain) {
 
-    output[j++] = encode_table[(triple >> 18) & 0x3F];
-    output[j++] = encode_table[(triple >> 12) & 0x3F];
-    output[j++] = encode_table[(triple >> 6) & 0x3F];
-    output[j++] = encode_table[triple & 0x3F];
+  char counts = 0;
+  char buffer[3];
+  char *cipher = malloc(strlen(plain) * 4 / 3 + 4);
+  int i = 0, c = 0;
+
+  for (i = 0; plain[i] != '\0'; i++) {
+    buffer[counts++] = plain[i];
+    if (counts == 3) {
+      cipher[c++] = base46_map[buffer[0] >> 2];
+      cipher[c++] = base46_map[((buffer[0] & 0x03) << 4) + (buffer[1] >> 4)];
+      cipher[c++] = base46_map[((buffer[1] & 0x0f) << 2) + (buffer[2] >> 6)];
+      cipher[c++] = base46_map[buffer[2] & 0x3f];
+      counts = 0;
+    }
   }
 
-  size_t padding = length % 3;
-  if (padding) {
-    for (i = 0; i < padding; ++i)
-      output[j - (i + 1)] = '='; // Add padding
+  if (counts > 0) {
+    cipher[c++] = base46_map[buffer[0] >> 2];
+    if (counts == 1) {
+      cipher[c++] = base46_map[(buffer[0] & 0x03) << 4];
+      cipher[c++] = '=';
+    } else { // if counts == 2
+      cipher[c++] = base46_map[((buffer[0] & 0x03) << 4) + (buffer[1] >> 4)];
+      cipher[c++] = base46_map[(buffer[1] & 0x0f) << 2];
+    }
+    cipher[c++] = '=';
   }
 
-  output[j] = '\0';
-  return output;
+  cipher[c] = '\0'; /* string padding character */
+  return cipher;
+}
+
+char *base64_decode(char *cipher) {
+
+  char counts = 0;
+  char buffer[4];
+  char *plain = malloc(strlen(cipher) * 3 / 4);
+  int i = 0, p = 0;
+
+  for (i = 0; cipher[i] != '\0'; i++) {
+    char k;
+    for (k = 0; k < 64 && base46_map[k] != cipher[i]; k++)
+      ;
+    buffer[counts++] = k;
+    if (counts == 4) {
+      plain[p++] = (buffer[0] << 2) + (buffer[1] >> 4);
+      if (buffer[2] != 64)
+        plain[p++] = (buffer[1] << 4) + (buffer[2] >> 2);
+      if (buffer[3] != 64)
+        plain[p++] = (buffer[2] << 6) + buffer[3];
+      counts = 0;
+    }
+  }
+
+  plain[p] = '\0'; /* string padding character */
+  return plain;
 }

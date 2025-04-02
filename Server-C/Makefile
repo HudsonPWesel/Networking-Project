@@ -1,14 +1,12 @@
-# Compiler
+# # Compiler
 CC = gcc
 
-
-# Linker flags
-
-LDFLAGS="-L /opt/homebrew/opt/openssl@3.4" \
-CPPFLAGS="-I /opt/homebrew/opt/openssl@3.4/include" \
+# OpenSSL paths (Ubuntu default)
+LDFLAGS = -L/usr/lib/x86_64-linux-gnu
+CPPFLAGS = -I/usr/include -Wall -I./include  # Add the path to base64.h if it's in 'include/'
 
 # Source files
-SRCS = server.c
+SRCS = server.c base64.c  # Add base64.c if it exists
 
 # Object files
 OBJS = $(SRCS:.c=.o)
@@ -21,12 +19,13 @@ all: $(TARGET)
 
 # Linking the executable
 $(TARGET): $(OBJS)
-	$(CC) $(OBJS) -o $(TARGET) $(LDFLAGS) $(LDLIBS)
+	$(CC) $(OBJS) -o $(TARGET) $(LDFLAGS) $(LDLIBS) -lssl -lcrypto
 
 # Compiling the source files
 %.o: %.c
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
 
 # Cleaning up
 clean:
 	rm -f $(OBJS) $(TARGET)
+

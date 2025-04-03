@@ -1,16 +1,13 @@
 # Compiler and flags
 CC = gcc
 CFLAGS = -Wall -g
-LIBS = -ljson-c -lssl -lcrypto  # Added OpenSSL libraries
+LIBS = -ljson-c -lssl -lcrypto
 LDFLAGS =
 
-# Include directory for json-c and OpenSSL (adjust if necessary)
 INCLUDES = -I/usr/include/json-c -I/usr/include/openssl
 
-# Source files
-SRC = server.c base64.c  # Add other source files as needed
+SRC = server.c base64.c  
 
-# Output executable
 OUT = server
 
 # Default target

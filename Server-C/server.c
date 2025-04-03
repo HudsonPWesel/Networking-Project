@@ -150,11 +150,8 @@ void websocket_decode(char *buffer, int length) {
   }
 
   printf("Decoded Message: ");
-  for (int i = 0; i < payload_len; i++) {
-    buffer[data_offset + i] ^= masking_key[i % MASKING_KEY_LENGTH];
-    printf("%c", buffer[data_offset + i]);
-  }
-  printf("\n");
+  for (int i = 0; i < payload_len; i++)
+    printf("%c", buffer[data_offset + i] ^ masking_key[i % MASKING_KEY_LENGTH]);
 
   printf("Frame Info:\n");
   printf("is_fin: %u\n", is_fin);
@@ -259,6 +256,8 @@ void process_client_data(ServerState *state) {
       } else {
         buffer[read_bytes] = '\0';
         websocket_decode(buffer, read_bytes);
+
+        // Print out the decoded message for debugging
         printf("Decoded message: %s\n", buffer);
       }
     }

@@ -1,5 +1,7 @@
 #include <arpa/inet.h>
 #include <errno.h>
+#include <json-c/json.h>
+#include <json-c/json_object_iterator.h>
 #include <netinet/in.h>
 #include <openssl/bio.h>
 #include <openssl/buffer.h>
@@ -149,7 +151,8 @@ void websocket_decode(char *buffer, int length) {
 
   printf("Decoded Message: ");
   for (int i = 0; i < payload_len; i++) {
-    printf("%c", buffer[data_offset + i] ^ masking_key[i % MASKING_KEY_LENGTH]);
+    buffer[data_offset + i] ^= masking_key[i % MASKING_KEY_LENGTH];
+    printf("%c", buffer[data_offset + i]);
   }
   printf("\n");
 
@@ -240,18 +243,23 @@ void process_client_data(ServerState *state) {
   char buffer[MAXLINE];
   bzero(&buffer, sizeof(buffer));
 
-  for (int i = 0; i < state->maxi + 1; i++) {
+  for (int i = 0; i <= state->maxi; i++) {
     if ((current_fd = state->client[i]) < 0)
       continue;
+
     if (FD_ISSET(current_fd, &state->rset)) {
-      if ((read_bytes = read(state->client[i], buffer, sizeof(buffer))) == 0) {
+      read_bytes = read(current_fd, buffer, sizeof(buffer) - 1);
+      if (read_bytes == 0) {
         close(current_fd);
         FD_CLR(current_fd, &state->rset);
         state->client[i] = -1;
+      } else if (read_bytes < 0) {
+        perror("Read error");
+        continue;
       } else {
+        buffer[read_bytes] = '\0';
         websocket_decode(buffer, read_bytes);
-        buffer[read_bytes - 1] = '\0';
-        printf("%s", buffer);
+        printf("Decoded message: %s\n", buffer);
       }
     }
   }
@@ -289,7 +297,7 @@ void respond_handshake(char *key_start, int client_fd) {
           "Upgrade: websocket\r\n"
           "Connection: Upgrade\r\n"
           "Sec-WebSocket-Accept: %s\r\n"
-          "Access-Control-Allow-Origin: *\r\n" // Allow requests from any origin
+          "Access-Control-Allow-Origin: *\r\n"
           "Access-Control-Allow-Methods: GET, POST\r\n"
           "Access-Control-Allow-Headers: content-type\r\n\r\n",
           encoded_key);

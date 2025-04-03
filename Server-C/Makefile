@@ -1,31 +1,34 @@
-# Compiler
+# Compiler and flags
 CC = gcc
+CFLAGS = -Wall -g
+LIBS = -ljson-c -lssl -lcrypto  # Added OpenSSL libraries
+LDFLAGS =
 
-# OpenSSL paths (Ubuntu default)
-LDFLAGS = -L/usr/lib/x86_64-linux-gnu
-CPPFLAGS = -I/usr/include -Wall
+# Include directory for json-c and OpenSSL (adjust if necessary)
+INCLUDES = -I/usr/include/json-c -I/usr/include/openssl
 
 # Source files
-SRCS = server.c
+SRC = server.c base64.c  # Add other source files as needed
 
-# Object files
-OBJS = $(SRCS:.c=.o)
-
-# Target executable
-TARGET = server
+# Output executable
+OUT = server
 
 # Default target
-all: $(TARGET)
+all: $(OUT)
 
-# Linking the executable
-$(TARGET): $(OBJS)
-	$(CC) $(OBJS) -o $(TARGET) $(LDFLAGS) $(LDLIBS) -lssl -lcrypto
+# Compile and link the program
+$(OUT): $(SRC)
+	$(CC) $(CFLAGS) $(SRC) $(INCLUDES) -o $(OUT) $(LIBS)
 
-# Compiling the source files
-%.o: %.c
-	$(CC) $(CFLAGS) -c $< -o $@
-
-# Cleaning up
+# Clean up object files and the executable
 clean:
-	rm -f $(OBJS) $(TARGET)
+	rm -f $(OUT) *.o
 
+# Install dependencies (for systems where the json-c and OpenSSL libraries aren't installed)
+install-dependencies:
+	@echo "Installing json-c and OpenSSL dependencies..."
+	@sudo apt-get install -y libjson-c-dev libssl-dev  # For Ubuntu/Debian systems
+	# If you use other distros like CentOS/Fedora, uncomment below:
+	# @sudo yum install -y json-c-devel openssl-devel
+	# For macOS (Homebrew)
+	# @brew install json-c openssl

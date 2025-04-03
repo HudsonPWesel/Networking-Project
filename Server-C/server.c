@@ -148,10 +148,16 @@ void websocket_decode(char *buffer, int length) {
     printf("Invalid frame: payload length mismatch\n");
     return;
   }
+  char decoded_message[payload_len + 1];
 
-  printf("Decoded Message: ");
   for (int i = 0; i < payload_len; i++)
-    printf("%c", buffer[data_offset + i] ^ masking_key[i % MASKING_KEY_LENGTH]);
+    decoded_message[i] =
+        buffer[data_offset + i] ^ masking_key[i % MASKING_KEY_LENGTH];
+
+  decoded_message[payload_len] = '\0';
+  printf("Decoded Message: %s\n", decoded_message);
+
+  memcpy(buffer, decoded_message, payload_len + 1);
 
   printf("Frame Info:\n");
   printf("is_fin: %u\n", is_fin);

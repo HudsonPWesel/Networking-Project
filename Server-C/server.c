@@ -2,6 +2,7 @@
 #include <errno.h>
 #include <netinet/in.h>
 #include <openssl/bio.h>
+#include <openssl/buffer.h>
 #include <openssl/evp.h>
 #include <openssl/sha.h>
 #include <stdint.h>
@@ -61,12 +62,6 @@ int Base64Decode(char *b64message, unsigned char **buffer,
 
   return (0); // success
 }
-
-// Encodes Base64
-#include <openssl/bio.h>
-#include <openssl/buffer.h>
-#include <openssl/evp.h>
-#include <stdint.h>
 
 int Base64Encode(const unsigned char *buffer, size_t length,
                  char **b64text) { // Encodes a binary safe base 64 string
@@ -179,36 +174,49 @@ void initialize_state(ServerState *state, int listenfd) {
 }
 
 void process_new_connection(ServerState *state) {
-  printf("Proessing Conn...\n");
-
   struct sockaddr_in cli_addr;
   socklen_t cli_len = sizeof(cli_addr);
-  int i = 0;
-  char buffer[MAXLINE];
   int connfd;
+  char buffer[MAXLINE];
 
   if (FD_ISSET(state->listenfd, &(state->rset))) {
-    if ((connfd = accept(state->listenfd, (struct sockaddr *)&cli_addr,
-                         &cli_len)) < 0) {
+    int temp_fd =
+        accept(state->listenfd, (struct sockaddr *)&cli_addr, &cli_len);
+    if (temp_fd < 0) {
       perror("Accept Error\n");
       return;
     }
 
-    while (state->client[i] >= 0 && i < FD_SETSIZE)
-      i++;
+    int n = recv(temp_fd, buffer, sizeof(buffer) - 1, MSG_PEEK);
+    if (n <= 0) {
+      close(temp_fd);
+      return;
+    }
+    buffer[n] = '\0';
 
-    if (i > FD_SETSIZE) {
-      printf("Too many clients!\n");
+    if (!strstr(buffer, "Sec-WebSocket-Key")) {
+      close(temp_fd);
       return;
     }
 
-    read(connfd, buffer, sizeof(buffer));
-    printf("%s", buffer);
-    char *key_start = strstr(buffer, "Sec-WebSocket-Key");
-    printf("Received data: %s\n", buffer);
+    connfd = temp_fd;
+    read(connfd, buffer, sizeof(buffer) - 1);
+    buffer[n] = '\0';
 
-    if (key_start)
+    char *key_start = strstr(buffer, "Sec-WebSocket-Key");
+    if (key_start) {
       respond_handshake(key_start, connfd);
+    }
+
+    int i = 0;
+    while (state->client[i] >= 0 && i < FD_SETSIZE)
+      i++;
+
+    if (i >= FD_SETSIZE) {
+      printf("Too many clients!\n");
+      close(connfd);
+      return;
+    }
 
     FD_SET(connfd, &(state->allset));
     state->client[i] = connfd;
@@ -216,14 +224,13 @@ void process_new_connection(ServerState *state) {
     if (connfd > state->maxfd)
       state->maxfd = connfd;
 
-    if (i > state->maxi) {
+    if (i > state->maxi)
       state->maxi = i;
-    }
 
     char client_ip[INET_ADDRSTRLEN];
     inet_ntop(AF_INET, &(cli_addr.sin_addr), client_ip, INET_ADDRSTRLEN);
-    printf("New client () connected from %s:%d (fd: %d, slot: %d)\n", client_ip,
-           ntohs(cli_addr.sin_port), state->client[i], i);
+    printf("New WebSocket client connected from %s:%d (fd: %d, slot: %d)\n",
+           client_ip, ntohs(cli_addr.sin_port), state->client[i], i);
   }
 }
 
@@ -251,7 +258,6 @@ void process_client_data(ServerState *state) {
 }
 
 void respond_handshake(char *key_start, int client_fd) {
-  printf("RUNNING");
 
   char web_socket_key[KEY_LENGTH + GUID_LENGTH + 1];
 

@@ -106,35 +106,63 @@ void initialize_state(ServerState *state, int listenfd);
 void process_new_connection(ServerState *state);
 
 void websocket_decode(char *buffer, int length) {
+  if (length < 2) {
+    printf("Invalid frame: too short\n");
+    return;
+  }
 
   uint8_t is_fin = (buffer[0] & 0x80) >> 7;
   uint8_t opcode = buffer[0] & 0x0F;
   uint8_t is_masked = (buffer[1] & 0x80) >> 7;
   uint8_t payload_len = buffer[1] & 0x7F;
-  char masking_key[4];
-  int counter = 0;
+  int mask_offset = 2;
 
-  memcpy(masking_key, buffer + 2, MASKING_KEY_LENGTH);
-
-  for (int i = 6; i < 14; i++) {
-    printf("%c ", (buffer[i] ^ (masking_key[counter % 4])));
-    counter++;
+  if (payload_len == 126) {
+    if (length < 4) {
+      printf("Invalid frame: too short for extended payload length\n");
+      return;
+    }
+    payload_len = (buffer[2] << 8) | buffer[3];
+    mask_offset = 4;
+  } else if (payload_len == 127) {
+    if (length < 10) {
+      printf("Invalid frame: too short for extended payload length\n");
+      return;
+    }
+    payload_len = 0;
+    for (int i = 2; i < 10; i++) {
+      payload_len = (payload_len << 8) | buffer[i];
+    }
+    mask_offset = 10;
   }
 
-  // int mask_offset = 1;
+  if (is_masked) {
+    if (length < mask_offset + MASKING_KEY_LENGTH) {
+      printf("Invalid frame: too short for masking key\n");
+      return;
+    }
+  }
 
-  // printf("\nis_fin : %u\nopcode : %u\nis_masked : %d\npayload_len : %d\n\n",
-  //        is_fin, opcode, is_masked, payload_len);
+  char masking_key[MASKING_KEY_LENGTH];
+  memcpy(masking_key, buffer + mask_offset, MASKING_KEY_LENGTH);
+  int data_offset = mask_offset + MASKING_KEY_LENGTH;
 
-  // if (payload_len == 126) {
-  //   payload_len = (buffer[2] << 7) | buffer[3];
-  //   mask_offset = 4;
-  // } else if (payload_len == 127) {
-  //   for (int i = 1; i < 10; i++)
-  //     payload_len += buffer[i];
-  //   mask_offset = 10;
-  // }
-  printf("Hello World");
+  if (length < data_offset + payload_len) {
+    printf("Invalid frame: payload length mismatch\n");
+    return;
+  }
+
+  printf("Decoded Message: ");
+  for (int i = 0; i < payload_len; i++) {
+    printf("%c", buffer[data_offset + i] ^ masking_key[i % MASKING_KEY_LENGTH]);
+  }
+  printf("\n");
+
+  printf("Frame Info:\n");
+  printf("is_fin: %u\n", is_fin);
+  printf("opcode: %u\n", opcode);
+  printf("is_masked: %u\n", is_masked);
+  printf("payload_len: %d\n", payload_len);
 }
 
 void initialize_state(ServerState *state, int listenfd) {

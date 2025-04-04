@@ -1,7 +1,7 @@
 # Compiler and flags
 CC = gcc
 CFLAGS = -Wall -g
-LIBS = -ljson-c -lssl -lcrypto
+LIBS = -lcjson -lssl -lcrypto
 LDFLAGS =
 
 INCLUDES = -I/usr/include/json-c -I/usr/include/openssl

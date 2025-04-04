@@ -1,7 +1,6 @@
 #include <arpa/inet.h>
+#include <cjson/cJSON.h>
 #include <errno.h>
-#include <json-c/json.h>
-#include <json-c/json_object_iterator.h>
 #include <netinet/in.h>
 #include <openssl/bio.h>
 #include <openssl/buffer.h>
@@ -158,6 +157,18 @@ void websocket_decode(char *buffer, int length) {
   printf("Decoded Message: %s\n", decoded_message);
 
   memcpy(buffer, decoded_message, payload_len + 1);
+  cJSON *json = cJSON_Parse(decoded_message);
+  if (json == NULL) {
+    printf("Error parsing JSON\n");
+    return;
+  }
+
+  const cJSON *name = cJSON_GetObjectItemCaseSensitive(json, "type");
+  const cJSON *username = cJSON_GetObjectItemCaseSensitive(json, "username");
+  const cJSON *password = cJSON_GetObjectItemCaseSensitive(json, "password");
+
+  printf("Name: %s \n Username : %s \n  Password : %s \n", name->valuestring,
+         username->valuestring, password->valuestring);
 
   printf("Frame Info:\n");
   printf("is_fin: %u\n", is_fin);

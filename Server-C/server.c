@@ -138,8 +138,6 @@ void send_websocket_message(int client_fd, const char *message) {
     frame_size = 4;
   } else {
     frame[1] = 127;
-    // You'd need to write 8 bytes for length here (not shown)
-    // For simplicity, assume you won't send >65535 for now
     return;
   }
 
@@ -229,7 +227,8 @@ void websocket_decode(char *buffer, int length, int client_fd) {
 
   const cJSON *type = cJSON_GetObjectItemCaseSensitive(json, "type");
   // HANDLE SIGNUP
-  if (strcmp(type->valuestring, "signup") == 0) {
+  if (strcmp(type->valuestring, "signup") == 0 ||
+      strcmp(type->valuestring, "login") == 0) {
     // Send Resposne
     const cJSON *username = cJSON_GetObjectItemCaseSensitive(json, "username");
     const cJSON *password = cJSON_GetObjectItemCaseSensitive(json, "password");
@@ -255,8 +254,10 @@ void websocket_decode(char *buffer, int length, int client_fd) {
 
     SHA256((const unsigned char *)password->valuestring,
            strlen(password->valuestring), (unsigned char *)hash);
+
     sha256_to_hex((unsigned char *)hash, hashed_password);
 
+    // INIT CONN
     if (mysql_real_connect(conn, server, db_username, db_password, database, 0,
                            NULL, 0) == NULL) {
       fprintf(stderr, "mysql_real_connect() failed\n");
@@ -265,14 +266,45 @@ void websocket_decode(char *buffer, int length, int client_fd) {
     }
 
     char query[512];
-    snprintf(query, sizeof(query),
-             "insert into users (username, password_hash) values('%s', '%s')",
-             username->valuestring, hashed_password);
+    if (strcmp(type->valuestring, "signup") == 0) {
+      snprintf(query, sizeof(query),
+               "insert into users (username, password_hash) values('%s', '%s')",
+               username->valuestring, hashed_password);
 
-    if (mysql_query(conn, query)) {
-      fprintf(stderr, "Insert failed: %s\n", mysql_error(conn));
-      mysql_close(conn);
-      return;
+      if (mysql_query(conn, query)) {
+        fprintf(stderr, "Insert failed: %s\n", mysql_error(conn));
+        mysql_close(conn);
+        return;
+      }
+    } else if (strcmp(type->valuestring, "login") == 0) {
+      snprintf(
+          query, sizeof(query),
+          "SELECT * FROM users WHERE username = '%s' AND password_hash = '%s'",
+          username->valuestring, hashed_password);
+
+      if (mysql_query(conn, query)) {
+        fprintf(stderr, "Authentication query failed: %s\n", mysql_error(conn));
+        mysql_close(conn);
+        return;
+      }
+
+      MYSQL_RES *res = mysql_store_result(conn);
+      if (res == NULL) {
+        fprintf(stderr, "Failed to store result set: %s\n", mysql_error(conn));
+        mysql_close(conn);
+        return;
+      }
+
+      int num_rows = mysql_num_rows(res);
+      if (num_rows == 0) {
+        fprintf(stderr, "Invalid username/password\n");
+        mysql_free_result(res);
+        mysql_close(conn);
+        return;
+      }
+
+      // Success, continue
+      mysql_free_result(res);
     }
 
     char session_token[32];
@@ -301,12 +333,6 @@ void websocket_decode(char *buffer, int length, int client_fd) {
 
     send_session_token(client_fd, session_token);
   }
-
-  printf("Frame Info:\n");
-  printf("is_fin: %u\n", is_fin);
-  printf("opcode: %u\n", opcode);
-  printf("is_masked: %u\n", is_masked);
-  printf("payload_len: %d\n", payload_len);
 }
 
 void initialize_state(ServerState *state, int listenfd) {

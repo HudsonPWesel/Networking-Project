@@ -1,4 +1,5 @@
 #include <arpa/inet.h>
+#include <assert.h>
 #include <cjson/cJSON.h>
 #include <errno.h>
 #include <mysql/mysql.h>
@@ -28,7 +29,12 @@
 #define GETSOCKETERRNO() (errno)
 #endif
 
-#include <assert.h>
+void sha256_to_hex(const unsigned char *hash, char *output) {
+  for (int i = 0; i < 32; ++i) {
+    sprintf(output + (i * 2), "%02x", hash[i]);
+  }
+  output[64] = '\0';
+}
 
 size_t calcDecodeLength(
     const char *b64input) { // Calculates the length of a decoded string
@@ -185,17 +191,37 @@ void websocket_decode(char *buffer, int length) {
       return;
     }
 
-    if (mysql_real_connect(conn, "localhost", "root", "P@ssw0rd", "app", 0,
+    char server[16] = "localhost";
+    char db_username[16] = "root";
+    char db_password[16] = "P@ssw0rd";
+    char database[16] = "app";
+
+    unsigned char hash[32];
+    char hashed_password[65];
+
+    SHA256((const unsigned char *)password->valuestring,
+           strlen(password->valuestring), (unsigned char *)hash);
+    sha256_to_hex((unsigned char *)hash, hashed_password);
+
+    if (mysql_real_connect(conn, server, db_username, db_password, database, 0,
                            NULL, 0) == NULL) {
       fprintf(stderr, "mysql_real_connect() failed\n");
       mysql_close(conn);
       return;
     }
 
-    char hashed_password[65];
+    char query[512];
+    snprintf(query, sizeof(query),
+             "insert into users (username, password_hash) values('%s', '%s')",
+             username->valuestring, hashed_password);
 
-    SHA256(password->valuestring, strlen(password->valuestring),
-           hashed_password);
+    if (mysql_query(conn, query)) {
+      fprintf(stderr, "Insert failed: %s\n", mysql_error(conn));
+      mysql_close(conn);
+      return;
+    }
+
+    snprintf(query, sizeof(query), "select * from users;");
   }
 
   printf("Frame Info:\n");

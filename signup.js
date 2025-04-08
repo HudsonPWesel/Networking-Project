@@ -5,7 +5,6 @@ function getSocketStatus() {
     if (socket) {
       console.log('Current WebSocket State:', {
         readyState: socket.readyState,
-        // 0: CONNECTING, 1: OPEN, 2: CLOSING, 3: CLOSED
         readyStateDescription: ['Connecting', 'Open', 'Closing', 'Closed'][socket.readyState]
       });
     }
@@ -46,13 +45,11 @@ document.getElementById("loginForm").addEventListener("submit", function(event) 
   const username = document.getElementById("username").value;
   const password = document.getElementById("password").value;
 
-  // Initialize WebSocket only when form is submitted
   initWebSocket();
 
-  // Send login data only after WebSocket is opened
   socket.onopen = () => {
     console.log("Sending login credentials:", { username, password });
-    socket.send(JSON.stringify({ type: "login", username, password }));
+    socket.send(JSON.stringify({ type: "signup", username, password }));
   };
 });
 

@@ -1,12 +1,12 @@
 # Compiler and flags
 CC = gcc
 CFLAGS = -Wall -g
-LIBS = -lcjson -lssl -lcrypto
+LIBS = -lcjson -lssl -lcrypto -lmysqlclient
 LDFLAGS =
 
-INCLUDES = -I/usr/include/json-c -I/usr/include/openssl
+INCLUDES = -I/usr/include/json-c -I/usr/include/openssl -I/usr/include/mysql
 
-SRC = server.c base64.c  
+SRC = server.c base64.c
 
 OUT = server
 
@@ -21,11 +21,7 @@ $(OUT): $(SRC)
 clean:
 	rm -f $(OUT) *.o
 
-# Install dependencies (for systems where the json-c and OpenSSL libraries aren't installed)
+# Install dependencies
 install-dependencies:
-	@echo "Installing json-c and OpenSSL dependencies..."
-	@sudo apt-get install -y libjson-c-dev libssl-dev  # For Ubuntu/Debian systems
-	# If you use other distros like CentOS/Fedora, uncomment below:
-	# @sudo yum install -y json-c-devel openssl-devel
-	# For macOS (Homebrew)
-	# @brew install json-c openssl
+	@echo "Installing json-c, OpenSSL, and MySQL client libraries..."
+	@sudo apt-get install -y libjson-c-dev libssl-dev default-libmysqlclient-dev

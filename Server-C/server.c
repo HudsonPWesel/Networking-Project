@@ -1,6 +1,7 @@
 #include <arpa/inet.h>
 #include <cjson/cJSON.h>
 #include <errno.h>
+#include <mysql/mysql.h>
 #include <netinet/in.h>
 #include <openssl/bio.h>
 #include <openssl/buffer.h>
@@ -156,19 +157,46 @@ void websocket_decode(char *buffer, int length) {
   decoded_message[payload_len] = '\0';
   printf("Decoded Message: %s\n", decoded_message);
 
-  memcpy(buffer, decoded_message, payload_len + 1);
+  memcpy(buffer, decoded_message,
+         payload_len +
+             1); // needed to copy new data to ensure interpretated correctly
+
   cJSON *json = cJSON_Parse(decoded_message);
   if (json == NULL) {
     printf("Error parsing JSON\n");
     return;
   }
 
-  const cJSON *name = cJSON_GetObjectItemCaseSensitive(json, "type");
-  const cJSON *username = cJSON_GetObjectItemCaseSensitive(json, "username");
-  const cJSON *password = cJSON_GetObjectItemCaseSensitive(json, "password");
+  const cJSON *type = cJSON_GetObjectItemCaseSensitive(json, "type");
+  // HANDLE SIGNUP
+  if (strcmp(type->valuestring, "signup") == 0) {
+    // Send Resposne
+    const cJSON *username = cJSON_GetObjectItemCaseSensitive(json, "username");
+    const cJSON *password = cJSON_GetObjectItemCaseSensitive(json, "password");
 
-  printf("Name: %s \n Username : %s \n  Password : %s \n", name->valuestring,
-         username->valuestring, password->valuestring);
+    printf(" Username : %s \n  Password : %s \n", username->valuestring,
+           password->valuestring);
+
+    // INITIATE SQL CONN
+    MYSQL *conn = mysql_init(NULL);
+
+    if (conn == NULL) {
+      fprintf(stderr, "mysql_init() failed\n");
+      return;
+    }
+
+    if (mysql_real_connect(conn, "localhost", "root", "P@ssw0rd", "app", 0,
+                           NULL, 0) == NULL) {
+      fprintf(stderr, "mysql_real_connect() failed\n");
+      mysql_close(conn);
+      return;
+    }
+
+    char hashed_password[65];
+
+    SHA256(password->valuestring, strlen(password->valuestring),
+           hashed_password);
+  }
 
   printf("Frame Info:\n");
   printf("is_fin: %u\n", is_fin);

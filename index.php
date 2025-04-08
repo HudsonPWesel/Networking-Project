@@ -1,3 +1,10 @@
+<?php
+if (!isset($_COOKIE['session_token'])) {
+    header("Location: /Networking-Project/signup.php");
+    exit();
+}
+?>
+
 <!DOCTYPE html>
 <html lang="en">
   <head>

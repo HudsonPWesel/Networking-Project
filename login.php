@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login Form</title>
-    <script type="text/javascript" src="./signup.js" defer></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -14,7 +13,7 @@
             height: 100vh;
             background-color: #f4f4f4;
         }
-        .signup-container {
+        .login-container {
             background: white;
             padding: 20px;
             border-radius: 5px;
@@ -22,14 +21,14 @@
             width: 300px;
             text-align: center;
         }
-        .signup-container input {
+        .login-container input {
             width: 100%;
             padding: 10px;
             margin: 10px 0;
             border: 1px solid #ccc;
             border-radius: 5px;
         }
-        .signup-container button {
+        .login-container button {
             width: 100%;
             padding: 10px;
             background: blue;
@@ -38,20 +37,29 @@
             border-radius: 5px;
             cursor: pointer;
         }
-        .signup-container button:hover {
+        .login-container button:hover {
             background: darkblue;
         }
     </style>
 </head>
 <body>
-    <div class="signup-container">
-        <h2>Sign Up</h2>
+    <div class="login-container">
+        <h2>Login</h2>
         <form id="loginForm">
             <input type="text" id="username" placeholder="Username" required>
             <input type="password" id="password" placeholder="Password" required>
-            <button id="sign-up-btn"  type="submit">Sign Up</button>
-            <a href="login.html">Already have an account? Login in</a>
+            <button type="submit">Login</button>
+            <a href="signup.php">Don't have an account? Sign Up</a>
         </form>
     </div>
+
+    <script>
+        document.getElementById("loginForm").addEventListener("submit", function(event) {
+            event.preventDefault();
+            const username = document.getElementById("username").value;
+            const password = document.getElementById("password").value;
+            console.log("Username:", username, "Password:", password);
+        });
+    </script>
 </body>
 </html>

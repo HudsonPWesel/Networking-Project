@@ -7,6 +7,7 @@
 #include <openssl/bio.h>
 #include <openssl/buffer.h>
 #include <openssl/evp.h>
+#include <openssl/rand.h>
 #include <openssl/sha.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -22,6 +23,7 @@
 #define GUID_LENGTH 36
 #define MAXLINE 1024
 #define MASKING_KEY_LENGTH 4
+#define TOKEN_LENGTH 32
 
 #if defined(_WIN32)
 #define GETSOCKETERRNO() (WSAGetLastError())
@@ -108,7 +110,19 @@ void respond_handshake(char *key_start, int client_fd);
 void initialize_state(ServerState *state, int listenfd);
 void process_new_connection(ServerState *state);
 
-void websocket_decode(char *buffer, int length) {
+void generate_random_token(char *token, size_t length) {
+  const char charset[] =
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  if (length) {
+    for (size_t i = 0; i < length - 1; i++) {
+      int key = rand() % (int)(sizeof(charset) - 1);
+      token[i] = charset[key];
+    }
+    token[length - 1] = '\0'; // Null-terminate the token string
+  }
+}
+
+void websocket_decode(char *buffer, int length, int client_fd) {
   if (length < 2) {
     printf("Invalid frame: too short\n");
     return;
@@ -221,7 +235,31 @@ void websocket_decode(char *buffer, int length) {
       return;
     }
 
-    snprintf(query, sizeof(query), "select * from users;");
+    char session_token[32];
+    char token_sql[512];
+
+    srand((unsigned int)time(NULL));
+    generate_random_token(session_token, TOKEN_LENGTH);
+
+    printf("Generated Random Token : %s", session_token);
+
+    snprintf(token_sql, sizeof(token_sql),
+             "INSERT INTO sessions (username, token) VALUES ('%s', '%s')",
+             username->valuestring, session_token);
+
+    if (mysql_query(conn, token_sql)) {
+      fprintf(stderr, "Session insert error: %s\n", mysql_error(conn));
+      mysql_close(conn);
+      return;
+    }
+
+    char response[512];
+    snprintf(
+        response, sizeof(response),
+        "Signup successful\nSet-Cookie: session_token=%s; Path=/; HttpOnly\n",
+        session_token);
+
+    write(client_fd, response, strlen(response));
   }
 
   printf("Frame Info:\n");
@@ -326,8 +364,7 @@ void process_client_data(ServerState *state) {
         continue;
       } else {
         buffer[read_bytes] = '\0';
-        websocket_decode(buffer, read_bytes);
-
+        websocket_decode(buffer, read_bytes, current_fd);
         // Print out the decoded message for debugging
         printf("Decoded message: %s\n", buffer);
       }

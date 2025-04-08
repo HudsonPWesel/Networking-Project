@@ -26,9 +26,21 @@ function initWebSocket() {
     }
   };
 
-  socket.onmessage = (event) => {
-    console.log("Received message from server:", event.data);
+  socket.onmessage = function(event) {
+    const data = JSON.parse(event.data);
+
+    if (data.type === "session_token") {
+      // Store token
+      localStorage.setItem("session_token", data.session_token);
+
+      // Redirect
+      if (data.redirect) {
+        window.location.href = data.redirect;
+      }
+    }
+
   };
+
 
   socket.onerror = (error) => {
     console.error("WebSocket Error:", error);

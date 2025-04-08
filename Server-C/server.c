@@ -121,6 +121,46 @@ void generate_random_token(char *token, size_t length) {
     token[length - 1] = '\0'; // Null-terminate the token string
   }
 }
+void send_websocket_message(int client_fd, const char *message) {
+  size_t message_len = strlen(message);
+  unsigned char frame[10];
+  size_t frame_size = 0;
+
+  frame[0] = 0x81; // FIN + Text Frame
+
+  if (message_len <= 125) {
+    frame[1] = message_len;
+    frame_size = 2;
+  } else if (message_len <= 65535) {
+    frame[1] = 126;
+    frame[2] = (message_len >> 8) & 0xFF;
+    frame[3] = message_len & 0xFF;
+    frame_size = 4;
+  } else {
+    frame[1] = 127;
+    // You'd need to write 8 bytes for length here (not shown)
+    // For simplicity, assume you won't send >65535 for now
+    return;
+  }
+
+  // Send header
+  send(client_fd, frame, frame_size, 0);
+  // Send payload
+  send(client_fd, message, message_len, 0);
+}
+
+void send_session_token(int client_fd, const char *session_token) {
+  cJSON *response = cJSON_CreateObject();
+  cJSON_AddStringToObject(response, "type", "session_token");
+  cJSON_AddStringToObject(response, "session_token", session_token);
+  cJSON_AddStringToObject(response, "redirect", "index.html");
+
+  char *response_str = cJSON_Print(response);
+  send_websocket_message(client_fd, response_str);
+
+  cJSON_Delete(response);
+  free(response_str);
+}
 
 void websocket_decode(char *buffer, int length, int client_fd) {
   if (length < 2) {
@@ -259,7 +299,7 @@ void websocket_decode(char *buffer, int length, int client_fd) {
         "Signup successful\nSet-Cookie: session_token=%s; Path=/; HttpOnly\n",
         session_token);
 
-    write(client_fd, response, strlen(response));
+    send_session_token(client_fd, session_token);
   }
 
   printf("Frame Info:\n");
@@ -455,7 +495,7 @@ int main(int argc, char const *argv[]) {
     int nready = select(state.maxfd + 1, &(state.rset), NULL, NULL, NULL);
 
     if (nready < 0) {
-      perror("None Ready");
+      // perror("None Ready");
       continue;
     }
     process_new_connection(&state);

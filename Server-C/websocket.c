@@ -22,7 +22,7 @@ void send_websocket_message(int client_fd, const char *message) {
   unsigned char frame[10];
   size_t frame_size = 0;
 
-  frame[0] = 0x81; // FIN + Text Frame
+  frame[0] = 0x81;
 
   if (message_len <= 125) {
     frame[1] = message_len;
@@ -36,10 +36,7 @@ void send_websocket_message(int client_fd, const char *message) {
     frame[1] = 127;
     return;
   }
-
-  // Send header
   send(client_fd, frame, frame_size, 0);
-  // Send payload
   send(client_fd, message, message_len, 0);
 }
 cJSON *websocket_decode(char *buffer, int length, int client_fd) {
@@ -48,7 +45,6 @@ cJSON *websocket_decode(char *buffer, int length, int client_fd) {
     return NULL;
   }
 
-  // Extract first byte values
   uint8_t is_fin = (buffer[0] & 0x80) >> 7;
   uint8_t opcode = buffer[0] & 0x0F;
   uint8_t is_masked = (buffer[1] & 0x80) >> 7;
@@ -57,24 +53,23 @@ cJSON *websocket_decode(char *buffer, int length, int client_fd) {
 
   if (opcode == 0x8) {
     printf("Received close frame\n");
-    close(client_fd); // Close the socket gracefully
+    close(client_fd);
     return NULL;
   } else if (opcode != 0x1) {
     printf("Received unsupported frame (opcode: %d)\n", opcode);
     return NULL;
   }
 
-  // Handle extended payload lengths
   if (payload_len == 126) {
     if (length < 4) {
-      printf("Invalid frame: too short for extended payload length\n");
+      printf("Invalid frame\n");
       return NULL;
     }
     payload_len = (buffer[2] << 8) | buffer[3];
     mask_offset = 4;
   } else if (payload_len == 127) {
     if (length < 10) {
-      printf("Invalid frame: too short for extended payload length\n");
+      printf("Invalid frame\n");
       return NULL;
     }
     payload_len = 0;
@@ -90,8 +85,6 @@ cJSON *websocket_decode(char *buffer, int length, int client_fd) {
       return NULL;
     }
   }
-
-  // Decode the payload
   char masking_key[MASKING_KEY_LENGTH];
   memcpy(masking_key, buffer + mask_offset, MASKING_KEY_LENGTH);
   int data_offset = mask_offset + MASKING_KEY_LENGTH;

@@ -106,7 +106,6 @@ cJSON *websocket_decode(char *buffer, int length, int client_fd) {
   memset(buffer, 0, strlen(buffer));
   memcpy(buffer, decoded_message, payload_len + 1);
 
-  // Attempt to parse JSON
   cJSON *json = cJSON_Parse(buffer);
   if (json == NULL) {
     printf("Error parsing JSON\n");

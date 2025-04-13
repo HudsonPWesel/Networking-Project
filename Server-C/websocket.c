@@ -1,7 +1,9 @@
 #include "websocket.h"
 #include "auth.h"
 #include "crypto.h"
+#include "game.h"
 #include <arpa/inet.h>
+#include <cjson/cJSON.h>
 #include <netinet/in.h>
 #include <openssl/sha.h>
 #include <stdint.h>
@@ -48,77 +50,60 @@ cJSON *websocket_decode(char *buffer, int length, int client_fd) {
   uint8_t is_fin = (buffer[0] & 0x80) >> 7;
   uint8_t opcode = buffer[0] & 0x0F;
   uint8_t is_masked = (buffer[1] & 0x80) >> 7;
-  uint8_t payload_len = buffer[1] & 0x7F;
+  uint64_t payload_len = buffer[1] & 0x7F;
   int mask_offset = 2;
 
-  // if (opcode == 0x8) {
-  //   printf("Received close frame\n");
-  //   close(client_fd);
-  //   return NULL;
-  // } else if (opcode != 0x1) {
-  //   printf("Received unsupported frame (opcode: %d)\n", opcode);
-  //   return NULL;
-  // }
+  if (opcode == 0x8) {
+    printf("Received close frame\n");
+    close(client_fd);
+    return NULL;
+  } else if (opcode != 0x1) {
+    printf("Unsupported opcode: %d\n", opcode);
+    return NULL;
+  }
 
   if (payload_len == 126) {
-    if (length < 4) {
-      printf("Invalid frame\n");
+    if (length < 4)
       return NULL;
-    }
     payload_len = (buffer[2] << 8) | buffer[3];
     mask_offset = 4;
   } else if (payload_len == 127) {
-    if (length < 10) {
-      printf("Invalid frame\n");
+    if (length < 10)
       return NULL;
-    }
     payload_len = 0;
-    for (int i = 2; i < 10; i++) {
+    for (int i = 2; i < 10; i++)
       payload_len = (payload_len << 8) | buffer[i];
-    }
     mask_offset = 10;
   }
 
   if (is_masked) {
-    if (length < mask_offset + MASKING_KEY_LENGTH) {
-      printf("Invalid frame: too short for masking key\n");
+    if (length < mask_offset + 4)
       return NULL;
-    }
   }
-  char masking_key[MASKING_KEY_LENGTH];
-  memcpy(masking_key, buffer + mask_offset, MASKING_KEY_LENGTH);
-  int data_offset = mask_offset + MASKING_KEY_LENGTH;
 
+  int data_offset = mask_offset + 4;
   if (length < data_offset + payload_len) {
     printf("Invalid frame: payload length mismatch\n");
     return NULL;
   }
 
   char decoded_message[payload_len + 1];
-  for (int i = 0; i < payload_len; i++)
-    decoded_message[i] =
-        buffer[data_offset + i] ^ masking_key[i % MASKING_KEY_LENGTH];
-
+  if (is_masked) {
+    char masking_key[4];
+    memcpy(masking_key, buffer + mask_offset, 4);
+    for (uint64_t i = 0; i < payload_len; i++)
+      decoded_message[i] = buffer[data_offset + i] ^ masking_key[i % 4];
+  } else {
+    memcpy(decoded_message, buffer + data_offset, payload_len);
+  }
   decoded_message[payload_len] = '\0';
 
   printf("Decoded Message: %s\n", decoded_message);
-
-  memset(buffer, 0, strlen(buffer));
-  memcpy(buffer, decoded_message, payload_len + 1);
-
-  cJSON *json = cJSON_Parse(buffer);
-  if (json == NULL) {
-    printf("Error parsing JSON\n");
-    return NULL;
-  }
-
-  return json;
+  return cJSON_Parse(decoded_message);
 }
 
-// FIXME :
-
 void respond_handshake(char *buffer, int client_fd) {
-  printf("GOT NEW CONN\n");
+  printf("\n== NEW CONN ==\n");
   char *key_line = strstr(buffer, "Sec-WebSocket-Key:");
   if (!key_line)
     return;
@@ -156,6 +141,8 @@ void respond_handshake(char *buffer, int client_fd) {
            "Sec-WebSocket-Accept: %s\r\n\r\n",
            accept_key);
 
+  printf("\nRESPONDED TO FD : %s WITH WEBSOCKET-KEY %s", sec_key, accept_key);
+
   write(client_fd, response, strlen(response));
   free(accept_key);
 }
@@ -164,6 +151,7 @@ void process_new_connection(ServerState *state) {
   struct sockaddr_in cli_addr;
   socklen_t cli_len = sizeof(cli_addr);
   char buffer[MAXLINE];
+  int is_first = 1;
 
   if (FD_ISSET(state->listenfd, &(state->rset))) {
     int temp_fd =
@@ -190,37 +178,47 @@ void process_new_connection(ServerState *state) {
     printf("Received handshake:\n%s\n", buffer);
 
     char *key_start = strstr(buffer, "Sec-WebSocket-Key");
-    if (key_start)
+    if (key_start) {
+      printf("Found Key Staart");
       respond_handshake(key_start, temp_fd);
+    }
 
-    int i = 0;
-    while (state->client[i] >= 0 && i < FD_SETSIZE)
-      i++;
+    int slot = 0;
+    while (state->client[slot] >= 0 && slot < FD_SETSIZE)
+      slot++;
 
-    if (i >= FD_SETSIZE) {
+    if (slot >= FD_SETSIZE) {
       printf("Too many clients!\n");
       close(temp_fd);
       return;
     }
 
     FD_SET(temp_fd, &(state->allset));
-    state->client[i] = temp_fd;
+    state->client[slot] = temp_fd;
 
     if (temp_fd > state->maxfd)
       state->maxfd = temp_fd;
 
-    if (i > state->maxi)
-      state->maxi = i;
+    if (slot > state->maxi)
+      state->maxi = slot;
 
     char client_ip[INET_ADDRSTRLEN];
     inet_ntop(AF_INET, &(cli_addr.sin_addr), client_ip, INET_ADDRSTRLEN);
     printf("New WebSocket client connected from %s:%d (fd: %d, slot: %d)\n",
-           client_ip, ntohs(cli_addr.sin_port), state->client[i], i);
+           client_ip, ntohs(cli_addr.sin_port), state->client[slot], slot);
 
-    for (int i = 0; i <= state->maxi; i++) {
-      if (state->client[i] >= 0) {
-        printf("Client %d active (fd: %d)\n", i, state->client[i]);
+    for (int j = 0; j <= state->maxi; j++) {
+      if (state->client[j] >= 0) {
+        printf("Client %d active (fd: %d)\n", j, state->client[j]);
+        is_first = 0;
       }
     }
+
+    // char *username = is_first ? "value1" : "value2";
+
+    // cJSON *json_data = cJSON_CreateObject();
+    // cJSON_AddStringToObject(json_data, "username", username);
+
+    // add_player_to_queue(json_data, state->client[slot]);
   }
 }

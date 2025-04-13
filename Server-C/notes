@@ -1,0 +1,3 @@
+Websocket gets connection properly on refrsh of waiting-room.html and connects both users properly
+
+I think it's becuase for whatever reason when I login the JSON gets parsed. There is another request that fails to get parsed which breaks everything. And if I include a check, then subsequent conns are broken.

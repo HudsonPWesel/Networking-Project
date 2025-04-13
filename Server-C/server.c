@@ -47,7 +47,6 @@ void process_client_data(ServerState *state) {
         if (!strcmp(type->valuestring, "login") ||
             !strcmp(type->valuestring, "signup")) {
           handle_signup_or_login(json_data, current_fd);
-          add_player_to_queue(json_data, current_fd);
         } else if (!strcmp(type->valuestring, "move")) {
           handle_game_move(json_data, current_fd);
         }

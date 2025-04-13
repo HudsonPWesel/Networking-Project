@@ -9,7 +9,19 @@ int queue_size = 0;
 GameSession sessions[MAX_SESSIONS];
 
 void handle_game_move(cJSON *json_data, int current_fd) {
-  int column = cJSON_GetObjectItem(json_data, "column")->valueint;
+  cJSON *data = cJSON_GetObjectItem(json_data, "data");
+  if (!data) {
+    fprintf(stderr, "Error: 'data' object missing in JSON\n");
+    return;
+  }
+
+  cJSON *colItem = cJSON_GetObjectItem(data, "col");
+  if (!colItem) {
+    fprintf(stderr, "Error: 'col' missing in 'data' object\n");
+    return;
+  }
+
+  int column = colItem->valueint;
 
   GameSession *game = find_session_by_fd(current_fd);
   if (!game || !game->game_active) {
@@ -177,6 +189,9 @@ void create_new_game_session(int fd1, int fd2) {
 
       send_game_start(fd1, 1);
       send_game_start(fd2, 2);
+
+      printf("Starting game between  (fd %d) and  (fd %d)\n",
+             sessions[i].player1_fd, sessions[i].player2_fd);
       break;
     }
   }

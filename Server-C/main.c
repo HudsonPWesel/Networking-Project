@@ -18,7 +18,7 @@ int main(int argc, char const *argv[]) {
       continue;
     }
     process_new_connection(&state);
-    process_client_data(&state);
+    // process_client_data(&state);
   }
 
   return 0;

@@ -1,6 +1,8 @@
 #include "server.h"
 #include "auth.h"
+#include "game.h"
 #include "websocket.h"
+#include <string.h>
 
 void init_serverstate(ServerState *state, int server_fd) {
   state->listenfd = server_fd;
@@ -43,8 +45,12 @@ void process_client_data(ServerState *state) {
           return;
         type = cJSON_GetObjectItemCaseSensitive(json_data, "type");
         if (!strcmp(type->valuestring, "login") ||
-            !strcmp(type->valuestring, "signup"))
+            !strcmp(type->valuestring, "signup")) {
           handle_signup_or_login(json_data, current_fd);
+          add_player_to_queue(json_data, current_fd);
+        } else if (!strcmp(type->valuestring, "move")) {
+          handle_game_move(json_data, current_fd);
+        }
       }
     }
   }

@@ -6,7 +6,7 @@ LDFLAGS =
 
 INCLUDES = -I/usr/include/json-c -I/usr/include/openssl -I/usr/include/mysql
 
-SRC = server.c crypto.c auth.c database.c main.c websocket.c
+SRC = server.c crypto.c auth.c database.c main.c websocket.c game.c
 
 OUT = server
 

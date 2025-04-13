@@ -30,10 +30,8 @@ function initWebSocket() {
     const data = JSON.parse(event.data);
 
     if (data.type === "session_token") {
-      // Store token
       localStorage.setItem("session_token", data.session_token);
 
-      // Redirect
       if (data.redirect) {
         window.location.href = data.redirect;
       }

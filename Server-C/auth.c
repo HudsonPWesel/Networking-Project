@@ -13,7 +13,7 @@ void send_session_token(int client_fd, const char *session_token) {
   cJSON *response = cJSON_CreateObject();
   cJSON_AddStringToObject(response, "type", "session_token");
   cJSON_AddStringToObject(response, "session_token", session_token);
-  cJSON_AddStringToObject(response, "redirect", "index.html");
+  cJSON_AddStringToObject(response, "redirect", "select.html");
 
   char *response_str = cJSON_Print(response);
   send_websocket_message(client_fd, response_str);

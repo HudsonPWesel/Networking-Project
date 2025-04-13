@@ -51,14 +51,14 @@ cJSON *websocket_decode(char *buffer, int length, int client_fd) {
   uint8_t payload_len = buffer[1] & 0x7F;
   int mask_offset = 2;
 
-  if (opcode == 0x8) {
-    printf("Received close frame\n");
-    close(client_fd);
-    return NULL;
-  } else if (opcode != 0x1) {
-    printf("Received unsupported frame (opcode: %d)\n", opcode);
-    return NULL;
-  }
+  // if (opcode == 0x8) {
+  //   printf("Received close frame\n");
+  //   close(client_fd);
+  //   return NULL;
+  // } else if (opcode != 0x1) {
+  //   printf("Received unsupported frame (opcode: %d)\n", opcode);
+  //   return NULL;
+  // }
 
   if (payload_len == 126) {
     if (length < 4) {
@@ -118,6 +118,7 @@ cJSON *websocket_decode(char *buffer, int length, int client_fd) {
 // FIXME :
 
 void respond_handshake(char *buffer, int client_fd) {
+  printf("GOT NEW CONN\n");
   char *key_line = strstr(buffer, "Sec-WebSocket-Key:");
   if (!key_line)
     return;
@@ -186,6 +187,7 @@ void process_new_connection(ServerState *state) {
 
     read(temp_fd, buffer, sizeof(buffer) - 1);
     buffer[n] = '\0';
+    printf("Received handshake:\n%s\n", buffer);
 
     char *key_start = strstr(buffer, "Sec-WebSocket-Key");
     if (key_start)
@@ -214,5 +216,11 @@ void process_new_connection(ServerState *state) {
     inet_ntop(AF_INET, &(cli_addr.sin_addr), client_ip, INET_ADDRSTRLEN);
     printf("New WebSocket client connected from %s:%d (fd: %d, slot: %d)\n",
            client_ip, ntohs(cli_addr.sin_port), state->client[i], i);
+
+    for (int i = 0; i <= state->maxi; i++) {
+      if (state->client[i] >= 0) {
+        printf("Client %d active (fd: %d)\n", i, state->client[i]);
+      }
+    }
   }
 }

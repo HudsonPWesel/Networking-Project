@@ -9,11 +9,14 @@ cJSON *parse_json(char *decoded_message) {
   return json;
 }
 
-void send_session_token(int client_fd, const char *session_token) {
+void send_session_token(int client_fd, const char *session_token,
+                        char *username) {
   cJSON *response = cJSON_CreateObject();
   cJSON_AddStringToObject(response, "type", "session_token");
   cJSON_AddStringToObject(response, "session_token", session_token);
-  cJSON_AddStringToObject(response, "redirect", "select.html");
+  cJSON_AddStringToObject(response, "username", username);
+  cJSON_AddStringToObject(response, "redirect",
+                          "waiting-room.html"); // TODO : Change if full queue
 
   char *response_str = cJSON_Print(response);
   send_websocket_message(client_fd, response_str);
@@ -50,5 +53,5 @@ void handle_signup_or_login(cJSON *json, int client_fd) {
       "Signup successful\nSet-Cookie: session_token=%s; Path=/; HttpOnly\n",
       session_token);
 
-  send_session_token(client_fd, session_token);
+  send_session_token(client_fd, session_token, username->valuestring);
 }

@@ -16,16 +16,16 @@ export async function createSocket(username) {
       resolve(socket);
     };
 
-    socket.onerror = (error) => {
-      console.error("WebSocket error:", error);
-      console.warn(sockets);
-      reject(error);
-    };
+    //socket.onerror = (error) => {
+    //  console.error("WebSocket error:", error);
+    //  console.warn(sockets);
+    //  reject(error);
+    //};
 
-    socket.onclose = (event) => {
-      console.log("WebSocket closed:", event);
-      socket = null;
-    };
+    //socket.onclose = (event) => {
+    //  console.log("WebSocket closed:", event);
+    //  socket = null;
+    //};
   });
 }
 

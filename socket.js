@@ -5,7 +5,7 @@ export async function createSocket(username) {
     console.warn(`Socket for ${username} already open`);
     return sockets[username];
   }
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve, _) => {
     console.log(sockets);
 
     let socket = new WebSocket(`ws://10.18.102.38:9999/ws`);
@@ -14,6 +14,12 @@ export async function createSocket(username) {
       console.log("WebSocket connected as", username);
       sockets[username] = socket;
       resolve(socket);
+      const joinMessage = {
+        type: "join",
+        username: "Player1"
+      };
+
+      socket.send(JSON.stringify(joinMessage));
     };
 
     //socket.onerror = (error) => {

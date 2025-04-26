@@ -6,7 +6,7 @@ if (!playerName) {
   window.location.href = "/login.html";
 }
 
-// Assign or retrieve a unique color for the player
+// --- Setup player color ---
 let playerColor = sessionStorage.getItem("playerColor");
 const colors = [
   'rgb(237, 45, 73)', 'rgb(106, 168, 79)', 'rgb(255, 126, 185)', 'rgb(225, 245, 245)',
@@ -18,9 +18,10 @@ if (!playerColor) {
   sessionStorage.setItem("playerColor", playerColor);
 }
 
-let isMyTurn = playerName === "value1";
+// --- Game variables ---
+const DEFAULT_COLOR = "rgb(138, 138, 138)";
+let isMyTurn = playerName === "value1"; // TODO: Replace with actual first player logic
 let table = $('table tr');
-
 
 async function setup() {
   console.log(playerName);
@@ -28,8 +29,7 @@ async function setup() {
   const socket = getSocket(playerName);
 
   socket.onmessage = (e) => {
-    console.log("Recieved Message");
-
+    console.log("Received Message");
     const msg = JSON.parse(e.data);
     console.log(msg);
 
@@ -53,8 +53,7 @@ async function setup() {
       $('h3').text(`${msg.nextTurn}: your turn`);
     }
   };
-};
-
+}
 
 $('.board button').on('click', function() {
   if (!isMyTurn) {
@@ -86,7 +85,9 @@ function changeColor(rowIndex, colIndex, color) {
 }
 
 function returnColor(rowIndex, colIndex) {
-  return table.eq(rowIndex).find('td').eq(colIndex).find('button').css('background-color');
+  if (rowIndex >= 0) {
+    return table.eq(rowIndex).find('td').eq(colIndex).find('button').css('background-color');
+  }
 }
 
 function winHighlight(rowIndex, colIndex) {
@@ -95,7 +96,7 @@ function winHighlight(rowIndex, colIndex) {
 
 function checkBottom(colIndex) {
   for (let row = 5; row >= 0; row--) {
-    if (returnColor(row, colIndex) === rgb(138, 138, 138)) {
+    if (returnColor(row, colIndex) === DEFAULT_COLOR) {
       return row;
     }
   }
@@ -104,26 +105,28 @@ function checkBottom(colIndex) {
 function tieCheck() {
   let defaultCount = 0;
   for (let col = 0; col <= 6; col++) {
-    for (let row = 0; row <= 7; row++) {
-      if (returnColor(row, col) === rgb(138, 138, 138)) {
+    for (let row = 0; row <= 5; row++) { // 6 rows, not 7
+      if (returnColor(row, col) === DEFAULT_COLOR) {
         defaultCount++;
       }
     }
   }
-  if (defaultCount == 0) {
-    return true;
-  }
-  return false;
+  return defaultCount === 0;
 }
 
 function colorMatchCheck(one, two, three, four) {
-  return one === two && one === three && one === four && one !== 'rgb(138, 138, 138)' && one !== undefined;
+  return one === two && one === three && one === four && one !== DEFAULT_COLOR && one !== undefined;
 }
 
 function horizontalWinCheck() {
   for (let row = 0; row < 6; row++) {
     for (let col = 0; col < 4; col++) {
-      if (colorMatchCheck(returnColor(row, col), returnColor(row, col + 1), returnColor(row, col + 2), returnColor(row, col + 3))) {
+      if (colorMatchCheck(
+        returnColor(row, col),
+        returnColor(row, col + 1),
+        returnColor(row, col + 2),
+        returnColor(row, col + 3)
+      )) {
         [0, 1, 2, 3].forEach(i => winHighlight(row, col + i));
         return true;
       }
@@ -135,7 +138,12 @@ function horizontalWinCheck() {
 function verticalWinCheck() {
   for (let col = 0; col < 7; col++) {
     for (let row = 0; row < 3; row++) {
-      if (colorMatchCheck(returnColor(row, col), returnColor(row + 1, col), returnColor(row + 2, col), returnColor(row + 3, col))) {
+      if (colorMatchCheck(
+        returnColor(row, col),
+        returnColor(row + 1, col),
+        returnColor(row + 2, col),
+        returnColor(row + 3, col)
+      )) {
         [0, 1, 2, 3].forEach(i => winHighlight(row + i, col));
         return true;
       }
@@ -145,14 +153,28 @@ function verticalWinCheck() {
 }
 
 function diagonalWinCheck() {
-  for (let col = 0; col < 5; col++) {
-    for (let row = 0; row < 6; row++) {
-      if (colorMatchCheck(returnColor(row, col), returnColor(row + 1, col + 1), returnColor(row + 2, col + 2), returnColor(row + 3, col + 3))) {
+  for (let row = 0; row < 6; row++) {
+    for (let col = 0; col < 7; col++) {
+      // Diagonal right-down
+      if (row + 3 < 6 && col + 3 < 7 &&
+        colorMatchCheck(
+          returnColor(row, col),
+          returnColor(row + 1, col + 1),
+          returnColor(row + 2, col + 2),
+          returnColor(row + 3, col + 3)
+        )) {
         [0, 1, 2, 3].forEach(i => winHighlight(row + i, col + i));
         return true;
       }
-      if (row >= 3 && colorMatchCheck(returnColor(row, col), returnColor(row - 1, col + 1), returnColor(row - 2, col + 2), returnColor(row - 3, col + 3))) {
-        [0, 1, 2, 3].forEach(i => winHighlight(row - i, col + i));
+      // Diagonal left-down
+      if (row + 3 < 6 && col - 3 >= 0 &&
+        colorMatchCheck(
+          returnColor(row, col),
+          returnColor(row + 1, col - 1),
+          returnColor(row + 2, col - 2),
+          returnColor(row + 3, col - 3)
+        )) {
+        [0, 1, 2, 3].forEach(i => winHighlight(row + i, col - i));
         return true;
       }
     }
@@ -171,4 +193,6 @@ function gameEnd(winner) {
   $('h3').fadeOut();
 }
 
+// --- Run ---
 setup();
+

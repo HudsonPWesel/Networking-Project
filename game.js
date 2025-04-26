@@ -26,7 +26,7 @@ let table = $('table tr');
 async function setup() {
   console.log(playerName);
   try {
-    const socket = await createSocket(playerName);
+    const socket = createSocket(playerName);
 
     socket.onmessage = (e) => {
       console.log("Received Message");

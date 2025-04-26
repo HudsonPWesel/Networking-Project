@@ -4,6 +4,7 @@
 #include "game.h"
 #include <arpa/inet.h>
 #include <cjson/cJSON.h>
+#include <fcntl.h>
 #include <netinet/in.h>
 #include <openssl/sha.h>
 #include <stdint.h>
@@ -20,9 +21,15 @@
 #define KEY_NAME_LENGTH 19
 
 void send_websocket_message(int client_fd, const char *message) {
+  printf("Sending message to client %d: %s\n", client_fd, message);
   size_t message_len = strlen(message);
   unsigned char frame[10];
   size_t frame_size = 0;
+
+  if (client_fd < 0) {
+    printf("Invalid client_fd: %d\n", client_fd);
+    return;
+  }
 
   frame[0] = 0x81;
 
@@ -36,10 +43,20 @@ void send_websocket_message(int client_fd, const char *message) {
     frame_size = 4;
   } else {
     frame[1] = 127;
-    return;
+    printf("Message too long (len: %zu), not sending\n", message_len);
+    return; // Message too long
   }
-  send(client_fd, frame, frame_size, 0);
-  send(client_fd, message, message_len, 0);
+
+  printf("Frame size: %zu, message length: %zu\n", frame_size, message_len);
+
+  ssize_t sent1 = send(client_fd, frame, frame_size, 0);
+  ssize_t sent2 = send(client_fd, message, message_len, 0);
+
+  if (sent1 < 0 || sent2 < 0) {
+    perror("Error sending websocket message");
+  } else {
+    printf("Successfully sent %zd + %zd bytes\n", sent1, sent2);
+  }
 }
 cJSON *websocket_decode(char *buffer, int length, int client_fd) {
   if (length < 2) {
@@ -150,72 +167,43 @@ void respond_handshake(char *buffer, int client_fd) {
 void process_new_connection(ServerState *state, fd_set *ready_set) {
   struct sockaddr_in cli_addr;
   socklen_t cli_len = sizeof(cli_addr);
-  char buffer[MAXLINE];
-  int is_first = 1;
 
   printf("\nProcessing new Conn\n");
 
-  if (FD_ISSET(state->listenfd, ready_set)) {
-    {
-      int temp_fd =
-          accept(state->listenfd, (struct sockaddr *)&cli_addr, &cli_len);
-      if (temp_fd < 0) {
-        perror("Accept Error\n");
-        return;
-      }
-
-      int n = recv(temp_fd, buffer, sizeof(buffer) - 1, MSG_PEEK);
-      if (n <= 0) {
-        close(temp_fd);
-        return;
-      }
-      buffer[n] = '\0';
-
-      if (!strstr(buffer, "Sec-WebSocket-Key")) {
-        close(temp_fd);
-        return;
-      }
-
-      read(temp_fd, buffer, sizeof(buffer) - 1);
-      buffer[n] = '\0';
-      printf("Received handshake:\n%s\n", buffer);
-
-      char *key_start = strstr(buffer, "Sec-WebSocket-Key");
-      if (key_start) {
-        printf("Found Key Staart");
-        respond_handshake(key_start, temp_fd);
-      }
-
-      int slot = 0;
-      while (state->client[slot] >= 0 && slot < FD_SETSIZE)
-        slot++;
-
-      if (slot >= FD_SETSIZE) {
-        printf("Too many clients!\n");
-        close(temp_fd);
-        return;
-      }
-
-      FD_SET(temp_fd, &(state->allset));
-      state->client[slot] = temp_fd;
-
-      if (temp_fd > state->maxfd)
-        state->maxfd = temp_fd;
-
-      if (slot > state->maxi)
-        state->maxi = slot;
-
-      char client_ip[INET_ADDRSTRLEN];
-      inet_ntop(AF_INET, &(cli_addr.sin_addr), client_ip, INET_ADDRSTRLEN);
-      printf("New WebSocket client connected from %s:%d (fd: %d, slot: %d)\n",
-             client_ip, ntohs(cli_addr.sin_port), state->client[slot], slot);
-
-      for (int j = 0; j <= state->maxi; j++) {
-        if (state->client[j] >= 0) {
-          printf("Client %d active (fd: %d)\n", j, state->client[j]);
-          is_first = 0;
-        }
-      }
-    }
+  int temp_fd = accept(state->listenfd, (struct sockaddr *)&cli_addr, &cli_len);
+  if (temp_fd < 0) {
+    perror("Accept Error");
+    return;
   }
+
+  // Make non-blocking
+  int flags = fcntl(temp_fd, F_GETFL, 0);
+  if (flags == -1)
+    flags = 0;
+  fcntl(temp_fd, F_SETFL, flags | O_NONBLOCK);
+
+  // Find empty slot
+  int slot = 0;
+  while (slot < FD_SETSIZE && state->client[slot] >= 0)
+    slot++;
+
+  if (slot >= FD_SETSIZE) {
+    printf("Too many clients!\n");
+    close(temp_fd);
+    return;
+  }
+
+  FD_SET(temp_fd, &(state->allset));
+  state->client[slot] = temp_fd;
+  state->handshake_done[slot] = 0;
+
+  if (temp_fd > state->maxfd)
+    state->maxfd = temp_fd;
+  if (slot > state->maxi)
+    state->maxi = slot;
+
+  char client_ip[INET_ADDRSTRLEN];
+  inet_ntop(AF_INET, &(cli_addr.sin_addr), client_ip, INET_ADDRSTRLEN);
+  printf("New connection from %s:%d (fd: %d, slot: %d)\n", client_ip,
+         ntohs(cli_addr.sin_port), temp_fd, slot);
 }

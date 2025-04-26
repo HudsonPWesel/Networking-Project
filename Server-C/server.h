@@ -11,20 +11,20 @@
 #define GETSOCKETERRNO() (errno)
 #define LISTEN_BACKLOG 50
 
-typedef struct ServerState {
-  int maxi; // index into client[] array
+typedef struct {
+  int listenfd;
   int maxfd;
-  int client[FD_SETSIZE];
+  int maxi; // index into client array
   fd_set allset;
   fd_set rset;
-  int listenfd;
-
+  int client[FD_SETSIZE];
+  int handshake_done[FD_SETSIZE]; // NEW
 } ServerState;
 
 int Socket();
 void init_serverstate(ServerState *state, int server_fd);
-ServerState init_ServerState(int server_fd);
-
 void process_client_data(ServerState *state, fd_set *ready_set);
+void process_client_messages(ServerState *state, int client_idx,
+                             int current_fd);
 
 #endif

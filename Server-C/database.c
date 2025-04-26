@@ -37,6 +37,7 @@ int insert_user(char *username, char *hashed_password, char token_sql) {
     mysql_close(conn);
     return -1;
   }
+  printf("User %s: was created ", username);
   return 0;
 }
 int insert_session_token(char *username, char *hashed_password) {

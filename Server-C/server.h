@@ -25,6 +25,6 @@ int Socket();
 void init_serverstate(ServerState *state, int server_fd);
 ServerState init_ServerState(int server_fd);
 
-void process_client_data(ServerState *state);
+void process_client_data(ServerState *state, fd_set *ready_set);
 
 #endif

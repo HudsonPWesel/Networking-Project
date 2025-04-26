@@ -213,12 +213,5 @@ void process_new_connection(ServerState *state) {
         is_first = 0;
       }
     }
-
-    // char *username = is_first ? "value1" : "value2";
-
-    // cJSON *json_data = cJSON_CreateObject();
-    // cJSON_AddStringToObject(json_data, "username", username);
-
-    // add_player_to_queue(json_data, state->client[slot]);
   }
 }

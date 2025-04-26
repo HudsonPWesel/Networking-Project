@@ -17,8 +17,8 @@ void init_serverstate(ServerState *state, int server_fd) {
   FD_SET(server_fd, &(state->allset));
 }
 
-void process_client_data(ServerState *state) {
-  printf("Processing Client Data ...");
+void process_client_data(ServerState *state, fd_set *ready_set) {
+  printf("\nProcessing Client Data ...\n");
   int current_fd, read_bytes;
 
   char buffer[MAXLINE];
@@ -28,11 +28,11 @@ void process_client_data(ServerState *state) {
     if ((current_fd = state->client[i]) < 0)
       continue;
 
-    if (FD_ISSET(current_fd, &state->rset)) {
+    if (FD_ISSET(current_fd, ready_set)) { // Use the passed copy of ready_set
       read_bytes = read(current_fd, buffer, sizeof(buffer) - 1);
       if (read_bytes == 0) {
         close(current_fd);
-        FD_CLR(current_fd, &state->rset);
+        FD_CLR(current_fd, ready_set); // Clear the fd from ready_set
         state->client[i] = -1;
       } else if (read_bytes < 0) {
         perror("Read error");
@@ -44,8 +44,14 @@ void process_client_data(ServerState *state) {
         if (!json_data)
           return;
         type = cJSON_GetObjectItemCaseSensitive(json_data, "type");
-        if (!strcmp(type->valuestring, "login") ||
-            !strcmp(type->valuestring, "signup")) {
+        printf("Type of Recieved Messages: %s\n", type->valuestring);
+
+        if (type && strcmp(type->valuestring, "join") == 0) {
+          add_player_to_queue(json_data, current_fd);
+        }
+
+        else if (!strcmp(type->valuestring, "login") ||
+                 !strcmp(type->valuestring, "signup")) {
           handle_signup_or_login(json_data, current_fd);
         } else if (!strcmp(type->valuestring, "move")) {
           handle_game_move(json_data, current_fd);
@@ -54,6 +60,7 @@ void process_client_data(ServerState *state) {
     }
   }
 }
+
 int Socket() {
   int server_fd;
 

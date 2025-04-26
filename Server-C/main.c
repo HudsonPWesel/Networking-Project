@@ -10,15 +10,22 @@ int main(int argc, char const *argv[]) {
   ServerState state = init_ServerState(server_fd);
 
   for (;;) {
-    state.rset = state.allset;
-    int nready = select(state.maxfd + 1, &(state.rset), NULL, NULL, NULL);
+    fd_set ready_set = state.rset; // Make a copy of the rset
+    int nready = select(state.maxfd + 1, &ready_set, NULL, NULL, NULL);
 
     if (nready < 0) {
-      // perror("None Ready");
       continue;
     }
-    process_new_connection(&state);
-    // process_client_data(&state);
+
+    // Handle new connections first
+    if (FD_ISSET(state.listenfd, &ready_set)) {
+      process_new_connection(&state);
+      if (--nready <= 0)
+        continue; // No need to process further if no other fds are ready
+    }
+
+    // Process client data if any client is ready
+    process_client_data(&state, &ready_set);
   }
 
   return 0;

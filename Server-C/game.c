@@ -9,6 +9,7 @@ int queue_size = 0;
 GameSession sessions[MAX_SESSIONS];
 
 void handle_game_move(cJSON *json_data, int current_fd) {
+  printf("\n Handling Game Move");
   cJSON *data = cJSON_GetObjectItem(json_data, "data");
   if (!data) {
     fprintf(stderr, "Error: 'data' object missing in JSON\n");
@@ -24,10 +25,14 @@ void handle_game_move(cJSON *json_data, int current_fd) {
   int column = colItem->valueint;
 
   GameSession *game = find_session_by_fd(current_fd);
-  if (!game || !game->game_active) {
-    send_error(current_fd, "No active game session.");
-    return;
-  }
+  // if (!game || !game->game_active) {
+  //  create_new_game_session(4, 5);
+  //  game = find_session_by_fd(current_fd);  // 🔥 reassign!
+  //  if (!game) {
+  //      send_error(current_fd, "No active game session.");
+  //      return;
+  //  }
+  //}
 
   if (current_fd != game->current_turn_fd) {
     send_error(current_fd, "Not your turn.");
@@ -47,6 +52,7 @@ void handle_game_move(cJSON *json_data, int current_fd) {
     game->game_active = 0;
   } else {
     switch_turn(game);
+    printf("\nSending Game Update\n");
     send_game_update(game);
   }
 }
@@ -141,6 +147,9 @@ void send_game_update(GameSession *game) {
   char *text = cJSON_PrintUnformatted(msg);
   send_websocket_message(game->player1_fd, text);
   send_websocket_message(game->player2_fd, text);
+  printf("\n Game Update Sent!\n");
+  // Decoded Message: {"type":"move","data":{"row":5,"col":6,"color":"rgb(237,
+  // 45, 73)","player":"value1"}}
 
   free(text);
   cJSON_Delete(msg);
@@ -183,7 +192,7 @@ void create_new_game_session(int fd1, int fd2) {
     if (!sessions[i].game_active) {
       sessions[i].player1_fd = fd1;
       sessions[i].player2_fd = fd2;
-      sessions[i].current_turn_fd = fd1;
+      sessions[i].current_turn_fd = fd2;
       memset(sessions[i].board, 0, sizeof(sessions[i].board));
       sessions[i].game_active = 1;
 
@@ -192,7 +201,7 @@ void create_new_game_session(int fd1, int fd2) {
 
       printf("Starting game between  (fd %d) and  (fd %d)\n",
              sessions[i].player1_fd, sessions[i].player2_fd);
-      break;
+      return;
     }
   }
 }
@@ -212,25 +221,41 @@ void send_waiting_message(int fd) {
 
 void add_player_to_queue(cJSON *json_data, int fd) {
   if (queue_size >= MAX_QUEUE) {
-    printf("Matchmaking queue full.");
+    printf("Matchmaking queue full.\n");
+    send_error(fd, "Matchmaking queue is full. Try again later.");
     return;
   }
 
+  // Add new player to queue
   QueuedPlayer p;
   p.fd = fd;
-  strcpy(p.username, cJSON_GetObjectItem(json_data, "username")->valuestring);
+
+  cJSON *username_item = cJSON_GetObjectItem(json_data, "username");
+  if (username_item && cJSON_IsString(username_item)) {
+    strncpy(p.username, username_item->valuestring, sizeof(p.username) - 1);
+    p.username[sizeof(p.username) - 1] = '\0'; // Safe null-terminate
+  } else {
+    strncpy(p.username, "anon", sizeof(p.username));
+  }
 
   player_queue[queue_size++] = p;
+  printf("Player '%s' (fd %d) added to queue. Queue size: %d\n", p.username,
+         p.fd, queue_size);
 
   if (queue_size >= 2) {
     QueuedPlayer p1 = player_queue[0];
     QueuedPlayer p2 = player_queue[1];
 
-    for (int i = 0; i < queue_size - 2; i++)
-      player_queue[i] = player_queue[i + 2];
-    queue_size -= 2;
+    printf("Matching players: %s (fd %d) vs %s (fd %d)\n", p1.username, p1.fd,
+           p2.username, p2.fd);
 
     create_new_game_session(p1.fd, p2.fd);
+
+    // Shift remaining players in queue
+    for (int i = 2; i < queue_size; i++) {
+      player_queue[i - 2] = player_queue[i];
+    }
+    queue_size -= 2;
   } else {
     send_waiting_message(fd);
   }

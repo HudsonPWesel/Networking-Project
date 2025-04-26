@@ -20,39 +20,44 @@ if (!playerColor) {
 
 // --- Game variables ---
 const DEFAULT_COLOR = "rgb(138, 138, 138)";
-let isMyTurn = playerName === "value1"; // TODO: Replace with actual first player logic
+let isMyTurn = playerName !== "value1"; // TODO: Replace with actual first player logic
 let table = $('table tr');
 
 async function setup() {
   console.log(playerName);
-  await createSocket(playerName);
-  const socket = getSocket(playerName);
+  try {
+    const socket = await createSocket(playerName);
 
-  socket.onmessage = (e) => {
-    console.log("Received Message");
-    const msg = JSON.parse(e.data);
-    console.log(msg);
+    socket.onmessage = (e) => {
+      console.log("Received Message");
+      const msg = JSON.parse(e.data);
+      console.log(msg);
 
-    if (msg.type === "start") {
-      isMyTurn = msg.yourTurn === playerName;
-      $('h3').text(`${msg.turn}: your turn`);
-    }
-
-    if (msg.type === "move") {
-      const { row, col, color, player } = msg.data;
-      changeColor(row, col, color);
-
-      // Check for win
-      if (horizontalWinCheck() || verticalWinCheck() || diagonalWinCheck()) {
-        gameEnd(player);
-      } else if (tieCheck()) {
-        gameEnd(1);
+      if (msg.type === "start") {
+        isMyTurn = msg.yourTurn === playerName;
+        $('h3').text(`${msg.turn}: your turn`);
       }
 
-      isMyTurn = msg.nextTurn === playerName;
-      $('h3').text(`${msg.nextTurn}: your turn`);
-    }
-  };
+      if (msg.type === "move") {
+        const { row, col, color, player } = msg.data;
+        changeColor(row, col, color);
+
+        // Check for win
+        if (horizontalWinCheck() || verticalWinCheck() || diagonalWinCheck()) {
+          gameEnd(player);
+        } else if (tieCheck()) {
+          gameEnd(1);
+        }
+
+        isMyTurn = msg.nextTurn === playerName;
+        $('h3').text(`${msg.nextTurn}: your turn`);
+      }
+    };
+
+  } catch (error) {
+    console.error("Failed to connect:", error);
+
+  }
 }
 
 $('.board button').on('click', function() {

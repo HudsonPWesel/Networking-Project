@@ -5,37 +5,61 @@ export async function createSocket(username) {
     console.warn(`Socket for ${username} already open`);
     return sockets[username];
   }
-  return new Promise((resolve, _) => {
-    console.log(sockets);
+  let socket2 = new WebSocket(`ws://10.18.102.38:9999/ws`);
 
+  socket2.onopen = () => {
+    console.log('Second socket OPEN:',);
+    socket2.send("Hell from socket2");
+  };
+
+  socket2.onerror = (err) => {
+    console.error('Second socket error:', err);
+  };
+
+  socket2.onclose = (evt) => {
+    console.warn('Second socket closed:', evt);
+  };
+  return new Promise((resolve, reject) => {
+    console.log("Current sockets:", sockets);
     let socket = new WebSocket(`ws://10.18.102.38:9999/ws`);
+    console.log("Attempting to connect to WebSocket server...");
+
+    // Store socket in sockets object immediately
+    sockets[username] = socket;
 
     socket.onopen = () => {
       console.log("WebSocket connected as", username);
-      sockets[username] = socket;
-      resolve(socket);
-      const joinMessage = {
-        type: "join",
-        username: "Player1"
-      };
+      console.log("Sending join message...");
 
-      socket.send(JSON.stringify(joinMessage));
+      try {
+        const joinMsg = JSON.stringify({
+          type: 'join',
+          username: username
+        });
+        console.log("Join message to send:", joinMsg);
+        socket.send(joinMsg);
+        console.log("Join message sent successfully");
+
+        // Only resolve after successful join message sent
+        resolve(socket);
+      } catch (error) {
+        console.error("Error sending join message:", error);
+        reject(error);
+      }
     };
 
-    //socket.onerror = (error) => {
-    //  console.error("WebSocket error:", error);
-    //  console.warn(sockets);
-    //  reject(error);
-    //};
+    socket.onerror = (error) => {
+      console.error("WebSocket error:", error);
+      delete sockets[username]; // Clean up on error
+      reject(error);
+    };
 
-    //socket.onclose = (event) => {
-    //  console.log("WebSocket closed:", event);
-    //  socket = null;
-    //};
+    socket.onclose = (event) => {
+      console.log("WebSocket closed:", event);
+      delete sockets[username]; // Clean up on close
+    };
   });
-}
-
-export function getSocket(username) {
+} export function getSocket(username) {
   return sockets[username];
 }
 

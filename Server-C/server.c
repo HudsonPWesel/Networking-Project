@@ -28,11 +28,11 @@ void process_client_data(ServerState *state, fd_set *ready_set) {
     if ((current_fd = state->client[i]) < 0)
       continue;
 
-    if (FD_ISSET(current_fd, ready_set)) { // Use the passed copy of ready_set
+    if (FD_ISSET(current_fd, ready_set)) {
       read_bytes = read(current_fd, buffer, sizeof(buffer) - 1);
       if (read_bytes == 0) {
         close(current_fd);
-        FD_CLR(current_fd, ready_set); // Clear the fd from ready_set
+        FD_CLR(current_fd, &(state->allset));
         state->client[i] = -1;
       } else if (read_bytes < 0) {
         perror("Read error");

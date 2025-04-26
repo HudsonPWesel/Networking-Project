@@ -14,6 +14,5 @@
 cJSON *websocket_decode(char *buffer, int length, int client_fd);
 void respond_handshake(char *key_start, int client_fd);
 void send_websocket_message(int client_fd, const char *message);
-void process_new_connection(ServerState *state);
-
+void process_new_connection(ServerState *state, fd_set *ready_set);
 #endif

@@ -147,70 +147,74 @@ void respond_handshake(char *buffer, int client_fd) {
   free(accept_key);
 }
 
-void process_new_connection(ServerState *state) {
+void process_new_connection(ServerState *state, fd_set *ready_set) {
   struct sockaddr_in cli_addr;
   socklen_t cli_len = sizeof(cli_addr);
   char buffer[MAXLINE];
   int is_first = 1;
 
-  if (FD_ISSET(state->listenfd, &(state->rset))) {
-    int temp_fd =
-        accept(state->listenfd, (struct sockaddr *)&cli_addr, &cli_len);
-    if (temp_fd < 0) {
-      perror("Accept Error\n");
-      return;
-    }
+  printf("\nProcessing new Conn\n");
 
-    int n = recv(temp_fd, buffer, sizeof(buffer) - 1, MSG_PEEK);
-    if (n <= 0) {
-      close(temp_fd);
-      return;
-    }
-    buffer[n] = '\0';
+  if (FD_ISSET(state->listenfd, ready_set)) {
+    {
+      int temp_fd =
+          accept(state->listenfd, (struct sockaddr *)&cli_addr, &cli_len);
+      if (temp_fd < 0) {
+        perror("Accept Error\n");
+        return;
+      }
 
-    if (!strstr(buffer, "Sec-WebSocket-Key")) {
-      close(temp_fd);
-      return;
-    }
+      int n = recv(temp_fd, buffer, sizeof(buffer) - 1, MSG_PEEK);
+      if (n <= 0) {
+        close(temp_fd);
+        return;
+      }
+      buffer[n] = '\0';
 
-    read(temp_fd, buffer, sizeof(buffer) - 1);
-    buffer[n] = '\0';
-    printf("Received handshake:\n%s\n", buffer);
+      if (!strstr(buffer, "Sec-WebSocket-Key")) {
+        close(temp_fd);
+        return;
+      }
 
-    char *key_start = strstr(buffer, "Sec-WebSocket-Key");
-    if (key_start) {
-      printf("Found Key Staart");
-      respond_handshake(key_start, temp_fd);
-    }
+      read(temp_fd, buffer, sizeof(buffer) - 1);
+      buffer[n] = '\0';
+      printf("Received handshake:\n%s\n", buffer);
 
-    int slot = 0;
-    while (state->client[slot] >= 0 && slot < FD_SETSIZE)
-      slot++;
+      char *key_start = strstr(buffer, "Sec-WebSocket-Key");
+      if (key_start) {
+        printf("Found Key Staart");
+        respond_handshake(key_start, temp_fd);
+      }
 
-    if (slot >= FD_SETSIZE) {
-      printf("Too many clients!\n");
-      close(temp_fd);
-      return;
-    }
+      int slot = 0;
+      while (state->client[slot] >= 0 && slot < FD_SETSIZE)
+        slot++;
 
-    FD_SET(temp_fd, &(state->allset));
-    state->client[slot] = temp_fd;
+      if (slot >= FD_SETSIZE) {
+        printf("Too many clients!\n");
+        close(temp_fd);
+        return;
+      }
 
-    if (temp_fd > state->maxfd)
-      state->maxfd = temp_fd;
+      FD_SET(temp_fd, &(state->allset));
+      state->client[slot] = temp_fd;
 
-    if (slot > state->maxi)
-      state->maxi = slot;
+      if (temp_fd > state->maxfd)
+        state->maxfd = temp_fd;
 
-    char client_ip[INET_ADDRSTRLEN];
-    inet_ntop(AF_INET, &(cli_addr.sin_addr), client_ip, INET_ADDRSTRLEN);
-    printf("New WebSocket client connected from %s:%d (fd: %d, slot: %d)\n",
-           client_ip, ntohs(cli_addr.sin_port), state->client[slot], slot);
+      if (slot > state->maxi)
+        state->maxi = slot;
 
-    for (int j = 0; j <= state->maxi; j++) {
-      if (state->client[j] >= 0) {
-        printf("Client %d active (fd: %d)\n", j, state->client[j]);
-        is_first = 0;
+      char client_ip[INET_ADDRSTRLEN];
+      inet_ntop(AF_INET, &(cli_addr.sin_addr), client_ip, INET_ADDRSTRLEN);
+      printf("New WebSocket client connected from %s:%d (fd: %d, slot: %d)\n",
+             client_ip, ntohs(cli_addr.sin_port), state->client[slot], slot);
+
+      for (int j = 0; j <= state->maxi; j++) {
+        if (state->client[j] >= 0) {
+          printf("Client %d active (fd: %d)\n", j, state->client[j]);
+          is_first = 0;
+        }
       }
     }
   }

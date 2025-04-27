@@ -20,21 +20,22 @@ if (!playerColor) {
 
 // --- Game variables ---
 const DEFAULT_COLOR = "rgb(138, 138, 138)";
-let isMyTurn = playerName !== "value1"; // TODO: Replace with actual first player logic
 let table = $('table tr');
+let isMyTurn = false;
 
 async function setup() {
   console.log(playerName);
   try {
     const socket = createSocket(playerName);
 
+    console.log("SOCKET IN GAMEJS", socket);
     socket.onmessage = (e) => {
       console.log("Received Message");
       const msg = JSON.parse(e.data);
       console.log(msg);
 
       if (msg.type === "start") {
-        isMyTurn = msg.yourTurn === playerName;
+        isMyTurn = msg.yourTurn;
         $('h3').text(`${msg.turn}: your turn`);
       }
 
@@ -61,6 +62,7 @@ async function setup() {
 }
 
 $('.board button').on('click', function() {
+  console.log(isMyTurn);
   if (!isMyTurn) {
     alert("Wait for your turn!");
     return;

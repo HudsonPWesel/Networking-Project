@@ -1,6 +1,6 @@
 const sockets = {};
 
-export async function createSocket(username) {
+export function createSocket(username) {
   if (sockets[username] && sockets[username].readyState === WebSocket.OPEN) {
     console.warn(`Socket for ${username} already open`);
     return sockets[username];
@@ -9,7 +9,15 @@ export async function createSocket(username) {
 
   socket2.onopen = () => {
     console.log('Second socket OPEN:',);
-    socket2.send("Hell from socket2");
+
+    const joinMsg = JSON.stringify({
+      type: 'join',
+      username: username
+    });
+    console.log("Join message to send:", joinMsg);
+    socket2.send(joinMsg);
+    console.log("Join message sent successfully");
+    //socket2.send("Hell from socket2");
   };
 
   socket2.onerror = (err) => {
@@ -19,7 +27,9 @@ export async function createSocket(username) {
   socket2.onclose = (evt) => {
     console.warn('Second socket closed:', evt);
   };
-  return new Promise((resolve, reject) => {
+
+  return socket2;
+  new Promise((resolve, reject) => {
     console.log("Current sockets:", sockets);
     let socket = new WebSocket(`ws://10.18.102.38:9999/ws`);
     console.log("Attempting to connect to WebSocket server...");

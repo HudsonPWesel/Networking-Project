@@ -22,11 +22,12 @@ if (!playerColor) {
 const DEFAULT_COLOR = "rgb(138, 138, 138)";
 let table = $('table tr');
 let isMyTurn = false;
+let socket;
 
 async function setup() {
   console.log(playerName);
   try {
-    const socket = createSocket(playerName);
+    socket = createSocket(playerName);
 
     console.log("SOCKET IN GAMEJS", socket);
     socket.onmessage = (e) => {
@@ -77,7 +78,6 @@ $('.board button').on('click', function() {
   }
 
   changeColor(row, col, playerColor);
-  const socket = getSocket(playerName);
   socket.send(JSON.stringify({
     type: "move",
     data: { row, col, color: playerColor, player: playerName }

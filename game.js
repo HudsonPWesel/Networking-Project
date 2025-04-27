@@ -59,15 +59,17 @@ async function setup() {
 
           }
         }
-        // Check for win
-        if (horizontalWinCheck() || verticalWinCheck() || diagonalWinCheck()) {
-          gameEnd(player);
-        } else if (tieCheck()) {
-          gameEnd(1);
+        if (msg.type === "win") {
+          console.debug("WINNER FOUND");
+          gameEnd(msg.winner);
         }
+        //else if (tieCheck()) {
+        //  //gameEnd(1);
+        //}
 
         isMyTurn = msg.currentTurn === playerNumber;
         $('h3').text(`${msg.currentTurn}: your turn`);
+        $('h3').text(`${msg.currentTurn}: your turn`).css('color', playerColor);
         console.log(isMyTurn);
       }
     };
@@ -206,11 +208,11 @@ function diagonalWinCheck() {
 }
 
 function gameEnd(winner) {
-  if (winner == 1) {
-    $('h1').text("It's a tie!").css("fontSize", "50px");
-  } else {
-    $('h1').text(`${winner} wins!`).css("fontSize", "50px");
-  }
+  //if (winner == 1) {
+  //  $('h1').text("It's a tie!").css("fontSize", "50px");
+  //} 
+  $('h1').text(`${winner} wins!`).css("fontSize", "50px");
+
   $('.board button').prop('disabled', true);
   $('.resetButton').prop('disabled', true);
   $('h3').fadeOut();

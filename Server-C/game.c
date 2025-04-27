@@ -48,9 +48,8 @@ void handle_game_move(cJSON *json_data, int current_fd) {
 
   game->nth_turn++;
 
-  // Check for win or draw can't have won if nth_turn < 2
   int win = 0;
-  if (game->nth_turn >= 7) {
+  if (game->nth_turn >= 6) {
     win = check_win(game->board, row, column);
     printf("\nChecked for Win: %d\n", win);
   }

@@ -47,12 +47,26 @@ char *base64_encode(const unsigned char *input, int length) {
 
 void send_websocket_message(int client_fd, const char *message) {
   size_t len = strlen(message);
-  unsigned char frame[10];
+  unsigned char frame[14];
   int idx = 0;
-  frame[idx++] = 0x81; // FIN + text frame
+
+  frame[idx++] = 0x81; // FIN bit set + opcode 0x1 (text frame)
+
   if (len <= 125) {
-    frame[idx++] = len;
+    frame[idx++] = (unsigned char)len;
+  } else if (len <= 65535) {
+    frame[idx++] = 126;
+    frame[idx++] = (len >> 8) & 0xFF;
+    frame[idx++] = len & 0xFF;
+  } else {
+    frame[idx++] = 127;
+    // For simplicity, assume len fits into 4 bytes (real large files need 8
+    // bytes)
+    for (int i = 7; i >= 0; --i) {
+      frame[idx++] = (i >= 4) ? 0 : (len >> (8 * i)) & 0xFF;
+    }
   }
+
   send(client_fd, frame, idx, 0);
   send(client_fd, message, len, 0);
 }

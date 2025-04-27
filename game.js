@@ -23,6 +23,7 @@ const DEFAULT_COLOR = "rgb(138, 138, 138)";
 let table = $('table tr');
 let isMyTurn = false;
 let socket;
+let playerNumber;
 
 async function setup() {
   console.log(playerName);
@@ -31,19 +32,33 @@ async function setup() {
 
     console.log("SOCKET IN GAMEJS", socket);
     socket.onmessage = (e) => {
-      console.log("Received Message");
       const msg = JSON.parse(e.data);
+      console.log("Received Message");
       console.log(msg);
 
       if (msg.type === "start") {
         isMyTurn = msg.yourTurn;
+        playerNumber = msg.player;
         $('h3').text(`${msg.turn}: your turn`);
       }
 
-      if (msg.type === "move") {
-        const { row, col, color, player } = msg.data;
-        changeColor(row, col, color);
+      if (msg.type === "update") {
+        //const { row, col, color, player } = msg.data;
+        //changeColor(row, col, color);
+        const { board } = msg;
 
+        for (let row = 0; row < board.length; row++) {
+          for (let col = 0; col < board[row].length; col++) {
+            const slot = board[row][col];
+            if (slot == playerNumber) {
+              changeColor(row, col, playerColor);
+            } else if (slot != 0) {
+              console.log("FOUND OPPOSING PLAYER SLOT");
+              changeColor(row, col, 'rgb(255, 187, 82)') //TODO: Update with real other player's color
+            }
+
+          }
+        }
         // Check for win
         if (horizontalWinCheck() || verticalWinCheck() || diagonalWinCheck()) {
           gameEnd(player);
@@ -53,6 +68,7 @@ async function setup() {
 
         isMyTurn = msg.nextTurn === playerName;
         $('h3').text(`${msg.nextTurn}: your turn`);
+        console.log(isMyTurn);
       }
     };
 

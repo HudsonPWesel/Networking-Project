@@ -9,7 +9,8 @@ int queue_size = 0;
 GameSession sessions[MAX_SESSIONS];
 
 void handle_game_move(cJSON *json_data, int current_fd) {
-  printf("\n Handling Game Move");
+  printf("\n Handling Game Move\n");
+
   cJSON *data = cJSON_GetObjectItem(json_data, "data");
   if (!data) {
     fprintf(stderr, "Error: 'data' object missing in JSON\n");
@@ -25,14 +26,9 @@ void handle_game_move(cJSON *json_data, int current_fd) {
   int column = colItem->valueint;
 
   GameSession *game = find_session_by_fd(current_fd);
-  // if (!game || !game->game_active) {
-  //  create_new_game_session(4, 5);
-  //  game = find_session_by_fd(current_fd);  // 🔥 reassign!
-  //  if (!game) {
-  //      send_error(current_fd, "No active game session.");
-  //      return;
-  //  }
-  //}
+  // printf("IS GAME ACTIVE %d", game->current_turn_fd);
+
+  printf("fd(%d) | Current Player fd (%d)", current_fd, game->current_turn_fd);
 
   if (current_fd != game->current_turn_fd) {
     send_error(current_fd, "Not your turn.");
@@ -48,6 +44,7 @@ void handle_game_move(cJSON *json_data, int current_fd) {
 
   // Check for win or draw
   if (check_win(game->board, row, column)) {
+    printf("\nChecking For Win");
     send_win_message(game, current_fd);
     game->game_active = 0;
   } else {
@@ -81,6 +78,7 @@ void send_error(int fd, const char *message) {
   cJSON_Delete(response);
 }
 int drop_piece(int board[ROWS][COLS], int col, int player) {
+  printf("\n Dropped Piece into col%d", col);
   if (col < 0 || col >= COLS)
     return -1;
 
@@ -192,7 +190,7 @@ void create_new_game_session(int fd1, int fd2) {
     if (!sessions[i].game_active) {
       sessions[i].player1_fd = fd1;
       sessions[i].player2_fd = fd2;
-      sessions[i].current_turn_fd = fd2;
+      sessions[i].current_turn_fd = fd1;
       memset(sessions[i].board, 0, sizeof(sessions[i].board));
       sessions[i].game_active = 1;
 

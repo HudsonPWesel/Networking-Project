@@ -20,6 +20,7 @@ typedef struct {
   int player2_fd;
   int current_turn_fd;
   int game_active;
+  int nth_turn;
 } GameSession;
 
 extern QueuedPlayer player_queue[MAX_QUEUE];

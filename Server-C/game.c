@@ -32,9 +32,11 @@ void handle_game_move(cJSON *json_data, int current_fd) {
 
   if (current_fd != game->current_turn_fd) {
     send_error(current_fd, "Not your turn.");
+    printf("ERROR DETECTED");
     return;
   }
 
+  printf("\nDROPPING PIECE==\n");
   int row =
       drop_piece(game->board, column, current_fd == game->player1_fd ? 1 : 2);
   if (row == -1) {
@@ -42,9 +44,10 @@ void handle_game_move(cJSON *json_data, int current_fd) {
     return;
   }
 
-  // Check for win or draw
-  if (check_win(game->board, row, column)) {
-    printf("\nChecking For Win");
+  // Check for win or draw can't have won if nth_turn < 2
+  // FIXME : check_win takes wayyyyyyyy toooooooo much time to computer, os much
+  // so that it made me think the program was blocked
+  if (game->nth_turn > 2 && check_win(game->board, row, column)) {
     send_win_message(game, current_fd);
     game->game_active = 0;
   } else {
@@ -52,6 +55,7 @@ void handle_game_move(cJSON *json_data, int current_fd) {
     printf("\nSending Game Update\n");
     send_game_update(game);
   }
+  game->nth_turn++;
 }
 void send_game_start(int fd, int player_num) {
   cJSON *msg = cJSON_CreateObject();
@@ -77,6 +81,7 @@ void send_error(int fd, const char *message) {
   free(text);
   cJSON_Delete(response);
 }
+
 int drop_piece(int board[ROWS][COLS], int col, int player) {
   printf("\n Dropped Piece into col%d", col);
   if (col < 0 || col >= COLS)
@@ -116,6 +121,7 @@ int check_win(int board[ROWS][COLS], int row, int col) {
   };
 
   for (int i = 0; i < 4; i++) {
+    printf("Connting in directions %d,%d\n", row, col);
     int total = count_in_direction(board, row, col, directions[i][0],
                                    directions[i][1], player) +
                 count_in_direction(board, row, col, -directions[i][0],
@@ -143,6 +149,7 @@ void send_game_update(GameSession *game) {
   cJSON_AddNumberToObject(msg, "currentTurn", current_player);
 
   char *text = cJSON_PrintUnformatted(msg);
+  printf("Sending JSON: %s\n", text);
   send_websocket_message(game->player1_fd, text);
   send_websocket_message(game->player2_fd, text);
   printf("\n Game Update Sent!\n");

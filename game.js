@@ -39,7 +39,8 @@ async function setup() {
       if (msg.type === "start") {
         isMyTurn = msg.yourTurn;
         playerNumber = msg.player;
-        $('h3').text(`${msg.turn}: your turn`);
+        $('h3').text(`Player 1 : your turn`);
+
       }
 
       if (msg.type === "update") {
@@ -68,9 +69,12 @@ async function setup() {
         //}
 
         isMyTurn = msg.currentTurn === playerNumber;
-        $('h3').text(`${msg.currentTurn}: your turn`);
-        $('h3').text(`${msg.currentTurn}: your turn`).css('color', playerColor);
-        console.log(isMyTurn);
+        let turnColor = isMyTurn ? playerColor : 'black';
+
+        $('h3').text(`Player ${msg.currentTurn}: your turn`);
+        $('h3').text(`${msg.currentTurn}: your turn`).css('color', turnColor);
+
+        console.log(`Is My Turn : ${isMyTurn}`);
       }
     };
 

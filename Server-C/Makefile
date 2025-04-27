@@ -1,7 +1,7 @@
 # Compiler and flags
 CC = gcc
 CFLAGS = -Wall -g
-LIBS = -lcjson -lssl -lcrypto -lmysqlclient
+LIBS = -lcjson -lssl -lcrypto -lmysqlclient -fopenmp 
 LDFLAGS =
 
 INCLUDES = -I/usr/include/json-c -I/usr/include/openssl -I/usr/include/mysql

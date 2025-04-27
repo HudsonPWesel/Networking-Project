@@ -1,5 +1,6 @@
 #include "game.h"
 #include "websocket.h"
+
 #define MAX_QUEUE 100
 #define MAX_SESSIONS 10
 
@@ -26,6 +27,7 @@ void handle_game_move(cJSON *json_data, int current_fd) {
   int column = colItem->valueint;
 
   GameSession *game = find_session_by_fd(current_fd);
+  printf("\nNTH TURN %d\n", game->nth_turn);
   // printf("IS GAME ACTIVE %d", game->current_turn_fd);
 
   printf("fd(%d) | Current Player fd (%d)", current_fd, game->current_turn_fd);
@@ -44,10 +46,17 @@ void handle_game_move(cJSON *json_data, int current_fd) {
     return;
   }
 
+  game->nth_turn++;
+
   // Check for win or draw can't have won if nth_turn < 2
-  // FIXME : check_win takes wayyyyyyyy toooooooo much time to computer, os much
-  // so that it made me think the program was blocked
-  if (game->nth_turn > 2 && check_win(game->board, row, column)) {
+  int win = 0;
+  if (game->nth_turn >= 7) {
+    win = check_win(game->board, row, column);
+    printf("\nChecked for Win: %d\n", win);
+  }
+
+  if (win) {
+    printf("\nPLAYER WON\n");
     send_win_message(game, current_fd);
     game->game_active = 0;
   } else {
@@ -55,7 +64,6 @@ void handle_game_move(cJSON *json_data, int current_fd) {
     printf("\nSending Game Update\n");
     send_game_update(game);
   }
-  game->nth_turn++;
 }
 void send_game_start(int fd, int player_num) {
   cJSON *msg = cJSON_CreateObject();
@@ -96,16 +104,78 @@ int drop_piece(int board[ROWS][COLS], int col, int player) {
   return -1; // Col full
 }
 
-int count_in_direction(int board[ROWS][COLS], int row, int col, int drow,
-                       int dcol, int player) {
+int check_horizontal(int board[ROWS][COLS], int row, int player) {
   int count = 0;
-  while (row >= 0 && row < ROWS && col >= 0 && col < COLS &&
-         board[row][col] == player) {
-    count++;
-    row += drow;
-    col += dcol;
+  for (int c = 0; c < COLS; c++) {
+    if (board[row][c] == player) {
+      count++;
+      if (count >= 4)
+        return 1;
+    } else {
+      count = 0;
+    }
   }
-  return count;
+  return 0;
+}
+
+int check_vertical(int board[ROWS][COLS], int col, int player) {
+  int count = 0;
+  for (int r = 0; r < ROWS; r++) {
+    if (board[r][col] == player) {
+      count++;
+      if (count >= 4)
+        return 1;
+    } else {
+      count = 0;
+    }
+  }
+  return 0;
+}
+
+int check_diagonal_down(int board[ROWS][COLS], int row, int col, int player) {
+  int start_row = row, start_col = col;
+  // Move to the top-left
+  while (start_row > 0 && start_col > 0) {
+    start_row--;
+    start_col--;
+  }
+
+  int count = 0;
+  while (start_row < ROWS && start_col < COLS) {
+    if (board[start_row][start_col] == player) {
+      count++;
+      if (count >= 4)
+        return 1;
+    } else {
+      count = 0;
+    }
+    start_row++;
+    start_col++;
+  }
+  return 0;
+}
+
+int check_diagonal_up(int board[ROWS][COLS], int row, int col, int player) {
+  int start_row = row, start_col = col;
+  // Move to the bottom-left
+  while (start_row < ROWS - 1 && start_col > 0) {
+    start_row++;
+    start_col--;
+  }
+
+  int count = 0;
+  while (start_row >= 0 && start_col < COLS) {
+    if (board[start_row][start_col] == player) {
+      count++;
+      if (count >= 4)
+        return 1;
+    } else {
+      count = 0;
+    }
+    start_row--;
+    start_col++;
+  }
+  return 0;
 }
 
 int check_win(int board[ROWS][COLS], int row, int col) {
@@ -113,24 +183,15 @@ int check_win(int board[ROWS][COLS], int row, int col) {
   if (player == 0)
     return 0;
 
-  int directions[4][2] = {
-      {0, 1}, // Horizontal
-      {1, 0}, // Vertical
-      {1, 1}, // Diagonal \
-        {1, -1}  // Diagonal /
-  };
+  if (check_horizontal(board, row, player))
+    return 1;
+  if (check_vertical(board, col, player))
+    return 1;
+  if (check_diagonal_down(board, row, col, player))
+    return 1;
+  if (check_diagonal_up(board, row, col, player))
+    return 1;
 
-  for (int i = 0; i < 4; i++) {
-    printf("Connting in directions %d,%d\n", row, col);
-    int total = count_in_direction(board, row, col, directions[i][0],
-                                   directions[i][1], player) +
-                count_in_direction(board, row, col, -directions[i][0],
-                                   -directions[i][1], player) -
-                1;
-
-    if (total >= 4)
-      return 1;
-  }
   return 0;
 }
 

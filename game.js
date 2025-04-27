@@ -66,8 +66,8 @@ async function setup() {
           gameEnd(1);
         }
 
-        isMyTurn = msg.nextTurn === playerName;
-        $('h3').text(`${msg.nextTurn}: your turn`);
+        isMyTurn = msg.currentTurn === playerNumber;
+        $('h3').text(`${msg.currentTurn}: your turn`);
         console.log(isMyTurn);
       }
     };

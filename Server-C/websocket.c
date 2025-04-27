@@ -6,7 +6,9 @@
 #include <cjson/cJSON.h>
 #include <fcntl.h>
 #include <netinet/in.h>
+#include <openssl/bio.h>
 #include <openssl/sha.h>
+#include <openssl/ssl.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -20,43 +22,39 @@
 #define GUID_LENGTH 36
 #define KEY_NAME_LENGTH 19
 
+const char *MAGIC_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+
+char *base64_encode(const unsigned char *input, int length) {
+  BIO *bmem = NULL, *b64 = NULL;
+  BUF_MEM *bptr;
+
+  b64 = BIO_new(BIO_f_base64());
+  bmem = BIO_new(BIO_s_mem());
+  b64 = BIO_push(b64, bmem);
+  BIO_set_flags(b64, BIO_FLAGS_BASE64_NO_NL);
+  BIO_write(b64, input, length);
+  BIO_flush(b64);
+  BIO_get_mem_ptr(b64, &bptr);
+
+  char *buff = (char *)malloc(bptr->length + 1);
+  memcpy(buff, bptr->data, bptr->length);
+  buff[bptr->length] = 0;
+
+  BIO_free_all(b64);
+
+  return buff;
+}
+
 void send_websocket_message(int client_fd, const char *message) {
-  printf("Sending message to client %d: %s\n", client_fd, message);
-  size_t message_len = strlen(message);
+  size_t len = strlen(message);
   unsigned char frame[10];
-  size_t frame_size = 0;
-
-  if (client_fd < 0) {
-    printf("Invalid client_fd: %d\n", client_fd);
-    return;
+  int idx = 0;
+  frame[idx++] = 0x81; // FIN + text frame
+  if (len <= 125) {
+    frame[idx++] = len;
   }
-
-  frame[0] = 0x81;
-
-  if (message_len <= 125) {
-    frame[1] = message_len;
-    frame_size = 2;
-  } else if (message_len <= 65535) {
-    frame[1] = 126;
-    frame[2] = (message_len >> 8) & 0xFF;
-    frame[3] = message_len & 0xFF;
-    frame_size = 4;
-  } else {
-    frame[1] = 127;
-    printf("Message too long (len: %zu), not sending\n", message_len);
-    return; // Message too long
-  }
-
-  printf("Frame size: %zu, message length: %zu\n", frame_size, message_len);
-
-  ssize_t sent1 = send(client_fd, frame, frame_size, 0);
-  ssize_t sent2 = send(client_fd, message, message_len, 0);
-
-  if (sent1 < 0 || sent2 < 0) {
-    perror("Error sending websocket message");
-  } else {
-    printf("Successfully sent %zd + %zd bytes\n", sent1, sent2);
-  }
+  send(client_fd, frame, idx, 0);
+  send(client_fd, message, len, 0);
 }
 cJSON *websocket_decode(char *buffer, int length, int client_fd) {
   if (length < 2) {
@@ -120,48 +118,38 @@ cJSON *websocket_decode(char *buffer, int length, int client_fd) {
 }
 
 void respond_handshake(char *buffer, int client_fd) {
-  printf("\n== NEW CONN ==\n");
-  char *key_line = strstr(buffer, "Sec-WebSocket-Key:");
-  if (!key_line)
+  char *key_start = strstr(buffer, "Sec-WebSocket-Key: ");
+  if (!key_start) {
+    printf("No WebSocket Key found\n");
     return;
+  }
 
-  key_line += strlen("Sec-WebSocket-Key:");
-  while (*key_line == ' ')
-    key_line++;
-
-  char *key_end = strstr(key_line, "\r\n");
+  key_start += strlen("Sec-WebSocket-Key: ");
+  char *key_end = strstr(key_start, "\r\n");
   if (!key_end)
     return;
 
-  char sec_key[128] = {0};
-  size_t key_len = key_end - key_line;
-  if (key_len >= sizeof(sec_key))
-    key_len = sizeof(sec_key) - 1;
+  char client_key[256] = {0};
+  strncpy(client_key, key_start, key_end - key_start);
 
-  memcpy(sec_key, key_line, key_len);
+  char accept_key[512];
+  snprintf(accept_key, sizeof(accept_key), "%s%s", client_key, MAGIC_GUID);
 
-  char combined[256];
-  snprintf(combined, sizeof(combined), "%s258EAFA5-E914-47DA-95CA-C5AB0DC85B11",
-           sec_key);
+  unsigned char sha1_result[SHA_DIGEST_LENGTH];
+  SHA1((unsigned char *)accept_key, strlen(accept_key), sha1_result);
 
-  unsigned char sha1_hash[SHA_DIGEST_LENGTH];
-  SHA1((unsigned char *)combined, strlen(combined), sha1_hash);
+  char *encoded = base64_encode(sha1_result, SHA_DIGEST_LENGTH);
 
-  char *accept_key = NULL;
-  Base64Encode(sha1_hash, SHA_DIGEST_LENGTH, &accept_key);
-
-  char response[512];
+  char response[1024];
   snprintf(response, sizeof(response),
            "HTTP/1.1 101 Switching Protocols\r\n"
            "Upgrade: websocket\r\n"
            "Connection: Upgrade\r\n"
            "Sec-WebSocket-Accept: %s\r\n\r\n",
-           accept_key);
+           encoded);
 
-  printf("\nRESPONDED TO FD : %s WITH WEBSOCKET-KEY %s", sec_key, accept_key);
-
-  write(client_fd, response, strlen(response));
-  free(accept_key);
+  send(client_fd, response, strlen(response), 0);
+  free(encoded);
 }
 
 void process_new_connection(ServerState *state, fd_set *ready_set) {

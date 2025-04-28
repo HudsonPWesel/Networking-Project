@@ -25,6 +25,14 @@ let isMyTurn = false;
 let socket;
 let playerNumber;
 
+
+function reset_handler(e) {
+  e.preventDefault();
+  socket.send(JSON.stringify({ 'type': 'reset', 'playerNumber': playerNumber }));
+  console.debug("Resetting Board");
+  document.querySelectorAll('#board_btn').forEach(boardButton => { console.log(boardButton); boardButton.style.backgroundColor = DEFAULT_COLOR });
+}
+
 async function setup() {
   console.log(playerName);
   try {
@@ -33,48 +41,53 @@ async function setup() {
     console.log("SOCKET IN GAMEJS", socket);
     socket.onmessage = (e) => {
       const msg = JSON.parse(e.data);
-      console.log("Received Message");
-      console.log(msg);
+      console.log(e.data);
 
       if (msg.type === "start") {
         isMyTurn = msg.yourTurn;
         playerNumber = msg.player;
-        $('h3').text(`Player 1 : your turn`);
-
+        $('h3').text(`Player ${msg.currentTurn}: your turn`);
+        document.querySelectorAll('#board_btn').forEach(boardButton => {
+          boardButton.disabled = false;
+        });
       }
 
-      if (msg.type === "update") {
-        //const { row, col, color, player } = msg.data;
-        //changeColor(row, col, color);
+      else if (msg.type === "update") {
         const { board } = msg;
-
         for (let row = 0; row < board.length; row++) {
           for (let col = 0; col < board[row].length; col++) {
             const slot = board[row][col];
             if (slot == playerNumber) {
               changeColor(row, col, playerColor);
             } else if (slot != 0) {
-              console.log("FOUND OPPOSING PLAYER SLOT");
-              changeColor(row, col, 'rgb(255, 187, 82)') //TODO: Update with real other player's color
+              changeColor(row, col, 'rgb(255, 187, 82)');
             }
-
           }
         }
-        if (msg.type === "win") {
-          console.debug("WINNER FOUND");
-          gameEnd(msg.winner);
-        }
-        //else if (tieCheck()) {
-        //  //gameEnd(1);
-        //}
-
         isMyTurn = msg.currentTurn === playerNumber;
         let turnColor = isMyTurn ? playerColor : 'black';
-
-        $('h3').text(`Player ${msg.currentTurn}: your turn`);
-        $('h3').text(`${msg.currentTurn}: your turn`).css('color', turnColor);
-
+        $('h3').text(`Player ${msg.currentTurn}: your turn`).css('color', turnColor);
         console.log(`Is My Turn : ${isMyTurn}`);
+      }
+
+      else if (msg.type === "reset") {
+        console.log("RESET MESSAGE RECEIVED");
+
+        document.querySelectorAll('#board_btn').forEach(boardButton => {
+          boardButton.style.backgroundColor = DEFAULT_COLOR;
+          boardButton.disabled = true;
+        });
+
+        $('h3').text(`New Game Starting...`).css('color', 'black');
+
+        isMyTurn = false;
+        playerNumber = null; // Reset player number
+
+      }
+
+      else if (msg.type === "win") {
+        console.log("WINNER FOUND");
+        gameEnd(msg.winner);
       }
     };
 
@@ -83,6 +96,8 @@ async function setup() {
 
   }
 }
+
+document.getElementById("reset_btn").addEventListener("click", reset_handler);
 
 $('.board button').on('click', function() {
   console.log(isMyTurn);
@@ -100,10 +115,7 @@ $('.board button').on('click', function() {
   }
 
   changeColor(row, col, playerColor);
-  socket.send(JSON.stringify({
-    type: "move",
-    data: { row, col, color: playerColor, player: playerName }
-  }));
+  socket.send(JSON.stringify({ type: "move", data: { row, col, color: playerColor, player: playerName } }));
 
   isMyTurn = false;
 });
@@ -218,10 +230,11 @@ function gameEnd(winner) {
   $('h1').text(`${winner} wins!`).css("fontSize", "50px");
 
   $('.board button').prop('disabled', true);
-  $('.resetButton').prop('disabled', true);
+  //$('.resetButton').prop('disabled', true);
   $('h3').fadeOut();
+  //TODO : RESET EVERYTHIGN ON CLIKC OF RESTE BUTTON
+
 }
 
-// --- Run ---
 setup();
 

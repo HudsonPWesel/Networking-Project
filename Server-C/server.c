@@ -181,7 +181,8 @@ void process_client_messages(ServerState *state, int client_idx,
           handle_signup_or_login(json_data, current_fd);
         } else if (!strcmp(type->valuestring, "move")) {
           handle_game_move(json_data, current_fd);
-        } else if (!strcmp(type->valuestring, "move")) {
+        } else if (!strcmp(type->valuestring, "reset")) {
+          reset_game(json_data, current_fd);
 
         } else {
           printf("Unknown message type: %s\n", type->valuestring);

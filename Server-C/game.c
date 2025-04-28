@@ -1,5 +1,6 @@
 #include "game.h"
 #include "websocket.h"
+#include <time.h>
 
 #define MAX_QUEUE 100
 #define MAX_SESSIONS 10
@@ -64,11 +65,16 @@ void handle_game_move(cJSON *json_data, int current_fd) {
     send_game_update(game);
   }
 }
-void send_game_start(int fd, int player_num) {
+void send_game_start(int fd, int player_num, int current_player_num) {
   cJSON *msg = cJSON_CreateObject();
   cJSON_AddStringToObject(msg, "type", "start");
   cJSON_AddNumberToObject(msg, "player", player_num);
-  cJSON_AddBoolToObject(msg, "yourTurn", player_num == 1);
+
+  // tell this client if it's their turn
+  cJSON_AddBoolToObject(msg, "yourTurn", player_num == current_player_num);
+
+  // Also add currentTurn (globally)
+  cJSON_AddNumberToObject(msg, "currentTurn", current_player_num);
 
   char *text = cJSON_PrintUnformatted(msg);
   send_websocket_message(fd, text);
@@ -102,6 +108,45 @@ int drop_piece(int board[ROWS][COLS], int col, int player) {
   }
   return -1; // Col full
 }
+void reset_game(cJSON *json_data, int fd) {
+  GameSession *game = find_session_by_fd(fd);
+
+  // reset board
+  for (int row = 0; row < ROWS; row++) {
+    for (int col = 0; col < COLS; col++) {
+      game->board[row][col] = 0;
+    }
+  }
+
+  // send reset message to both
+  cJSON *response = cJSON_CreateObject();
+  cJSON_AddStringToObject(response, "type", "reset");
+  char *text = cJSON_PrintUnformatted(response);
+
+  send_websocket_message(game->player1_fd, text);
+  send_websocket_message(game->player2_fd, text);
+
+  free(text);
+  cJSON_Delete(response);
+
+  // pick starting player (once)
+  srand(time(NULL));
+  int first_player = (rand() % 2) + 1; // 1 or 2
+
+  game->current_turn_fd =
+      (first_player == 1) ? game->player1_fd : game->player2_fd;
+  game->game_active = 1;
+  game->nth_turn = 0;
+
+  // tell both clients
+  send_game_start(game->player1_fd, 1, first_player);
+  send_game_start(game->player2_fd, 2, first_player);
+
+  printf("\nNew Game Started Between fd(%d) and fd(%d)\n", game->player1_fd,
+         game->player2_fd);
+
+  // TODO: Increment in DB
+};
 
 int check_horizontal(int board[ROWS][COLS], int row, int player) {
   int count = 0;
@@ -261,8 +306,8 @@ void create_new_game_session(int fd1, int fd2) {
       memset(sessions[i].board, 0, sizeof(sessions[i].board));
       sessions[i].game_active = 1;
 
-      send_game_start(fd1, 1);
-      send_game_start(fd2, 2);
+      send_game_start(fd1, 1, 1);
+      send_game_start(fd2, 2, 1);
 
       printf("Starting game between  (fd %d) and  (fd %d)\n",
              sessions[i].player1_fd, sessions[i].player2_fd);

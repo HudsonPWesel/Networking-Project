@@ -117,10 +117,12 @@ int drop_piece(int board[ROWS][COLS], int col, int player) {
 }
 void reset_game(cJSON *json_data, int fd) {
   GameSession *game = find_session_by_fd(fd);
-
+  printf("IS ACTIVE GAME %d", game->game_active);
+  printf("Current FD %d", game->current_turn_fd);
   // reset board
   for (int row = 0; row < ROWS; row++) {
     for (int col = 0; col < COLS; col++) {
+      printf("\nROW : %d | COL : %d\n", row, col);
       game->board[row][col] = 0;
     }
   }
@@ -289,8 +291,8 @@ void send_win_message(GameSession *game, int winner_fd) {
 
 GameSession *find_session_by_fd(int fd) {
   for (int i = 0; i < MAX_SESSIONS; i++) {
-    if (sessions[i].game_active &&
-        (sessions[i].player1_fd == fd || sessions[i].player2_fd == fd)) {
+    if (sessions[i].player1_fd == fd || sessions[i].player2_fd == fd) {
+      sessions[i].game_active = 1;
       return &sessions[i];
     }
   }

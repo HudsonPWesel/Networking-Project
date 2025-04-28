@@ -71,10 +71,10 @@ void process_client_messages(ServerState *state, int client_idx,
       return; // Handshake complete, will process frames on next select()
     }
 
-    // Process WebSocket frames
+    // PROCess WebSocket frames====
     if (peek_bytes < 2) {
       // Not enough data for even basic frame header
-      return; // Wait for more data
+      return;
     }
 
     // Analyze frame header

@@ -1,6 +1,7 @@
 import { createSocket } from './socket.js';
 
 const playerName = localStorage.getItem("username");
+
 if (!playerName) {
   alert("No username found. Please login first.");
   window.location.href = "/login.html";
@@ -26,11 +27,12 @@ let socket;
 let playerNumber;
 
 
-function reset_handler(e) {
-  e.preventDefault();
+function reset_handler() {
+  $('h1').text(`Welcome to Connect Four!`);
+  //e.preventDefault();
   socket.send(JSON.stringify({ 'type': 'reset', 'playerNumber': playerNumber }));
-  console.debug("Resetting Board");
-  document.querySelectorAll('#board_btn').forEach(boardButton => { console.log(boardButton); boardButton.style.backgroundColor = DEFAULT_COLOR });
+  console.log("Resetting Board");
+  document.querySelectorAll('#board_btn').forEach(boardButton => { console.log(boardButton); boardButton.style.backgroundColor = DEFAULT_COLOR; boardButton.style.borderWidth = '2px'; });
 }
 
 async function setup() {
@@ -87,7 +89,12 @@ async function setup() {
 
       else if (msg.type === "win") {
         console.log("WINNER FOUND");
-        gameEnd(msg.winner);
+        endGame(msg.winner);
+      }
+      else if (msg.type === "tie") {
+        //tieCheck()
+        console.log("Game Tied");
+        reset_handler()
       }
     };
 
@@ -109,18 +116,21 @@ $('.board button').on('click', function() {
   const col = $(this).closest("td").index();
   const row = checkBottom(col);
 
-  if (row === undefined) {
-    alert("Column full!");
-    return;
+  if (!checkTie()) {
+    if (row === -1) {
+      alert("Column full!");
+      return;
+    }
+
+    changeColor(row, col, playerColor);
+    socket.send(JSON.stringify({ type: "move", data: { row, col, color: playerColor, player: playerName } }));
+    isMyTurn = false;
+
+  } else {
+    socket.send(JSON.stringify({ type: "tie", data: { color: playerColor, player: playerName } }));
   }
-
-  changeColor(row, col, playerColor);
-  socket.send(JSON.stringify({ type: "move", data: { row, col, color: playerColor, player: playerName } }));
-
-  isMyTurn = false;
 });
 
-// --- Helper functions ---
 function changeColor(rowIndex, colIndex, color) {
   return table.eq(rowIndex).find('td').eq(colIndex).find('button').css('background-color', color);
 }
@@ -141,18 +151,18 @@ function checkBottom(colIndex) {
       return row;
     }
   }
+  return -1;
 }
 
-function tieCheck() {
-  let defaultCount = 0;
-  for (let col = 0; col <= 6; col++) {
-    for (let row = 0; row <= 5; row++) { // 6 rows, not 7
+function checkTie() {
+  for (let col = 0; col < 7; col++) {
+    for (let row = 0; row < 6; row++) { // 6 rows, not 7 dumbass
       if (returnColor(row, col) === DEFAULT_COLOR) {
-        defaultCount++;
+        return false;
       }
     }
   }
-  return defaultCount === 0;
+  return true;
 }
 
 function colorMatchCheck(one, two, three, four) {
@@ -223,10 +233,14 @@ function diagonalWinCheck() {
   return false;
 }
 
-function gameEnd(winner) {
+function endGame(winner) {
   //if (winner == 1) {
   //  $('h1').text("It's a tie!").css("fontSize", "50px");
   //} 
+  diagonalWinCheck();
+  verticalWinCheck();
+  horizontalWinCheck();
+
   $('h1').text(`${winner} wins!`).css("fontSize", "50px");
 
   $('.board button').prop('disabled', true);

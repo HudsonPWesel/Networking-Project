@@ -18,10 +18,11 @@ document.getElementById("loginForm").addEventListener("submit", async function(e
         console.log("Received after login:", e.data);
         const data = JSON.parse(e.data);
 
-        if (type === "session_token") {
+
+        if (data.type === "session_token") {
 
           localStorage.setItem("session_token", data.session_token);
-          localStorage.setItem("username", username);
+          localStorage.setItem("username", data.username);
 
           if (data.redirect)
             window.location.href = data.redirect;

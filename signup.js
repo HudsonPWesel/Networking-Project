@@ -35,15 +35,14 @@ function main() {
 
   socket.onmessage = function(event) {
     const data = JSON.parse(event.data);
-    const { type, redirect_url } = data;
-    console.log(`Message Received: ${data}`);
+    const { redirect } = data;
+    console.log("Message Received:", data);
 
-    if (type === "session_token") {
-      localStorage.setItem("session_token", data.session_token);
+    localStorage.setItem("session_token", data.session_token);
 
-      if (redirect_url)
-        window.location.href = redirect_url;
-    }
+    console.log("Redirecting To : ", redirect);
+    if (redirect)
+      window.location.href = redirect;
   };
 
   socket.onerror = (error) => {

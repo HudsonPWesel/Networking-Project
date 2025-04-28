@@ -20,8 +20,6 @@ function main() {
 
   socket.onopen = () => {
     console.log("WebSocket connection established");
-
-
     console.log("Sending login credentials:", { username, password });
     localStorage.setItem("username", username);
     socket.send(JSON.stringify({ type: "signup", username, password }));
@@ -57,7 +55,7 @@ function main() {
   };
 }
 
-document.getElementById("loginForm").addEventListener("submit", function(e) {
+document.getElementById("signup-form").addEventListener("submit", function(e) {
   e.preventDefault();
   main();
 });

@@ -1,4 +1,5 @@
 #include "auth.h"
+#include "database.h"
 
 cJSON *parse_json(char *decoded_message) {
   cJSON *json = cJSON_Parse(decoded_message);
@@ -40,12 +41,16 @@ void handle_signup_or_login(cJSON *json, int client_fd) {
          strlen(password->valuestring), (unsigned char *)hash);
   sha256_to_hex((unsigned char *)hash, hashed_password);
 
+  // TODO : Insert user into DB
   char session_token[32];
 
   srand((unsigned int)time(NULL));
   generate_random_token(session_token, TOKEN_LENGTH);
 
   printf("Generated Random Token : %s", session_token);
+
+  insert_user(username->valuestring, hashed_password, session_token);
+  insert_session_token(username->valuestring, session_token);
 
   char response[512];
   snprintf(

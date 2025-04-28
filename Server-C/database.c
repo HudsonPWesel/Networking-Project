@@ -25,9 +25,15 @@ MYSQL *init_db_conn() {
   return conn;
 }
 
-int insert_user(char *username, char *hashed_password, char token_sql) {
+int insert_user(char *username, char *hashed_password, char *token_sql) {
   MYSQL *conn = init_db_conn();
   char query[512];
+
+  if (!token_sql) {
+    printf("Insert User %s Failed!\n", username);
+    return -1;
+  }
+
   snprintf(query, sizeof(query),
            "insert into users (username, password_hash) values('%s', '%s')",
            username, hashed_password);
@@ -40,10 +46,9 @@ int insert_user(char *username, char *hashed_password, char token_sql) {
   printf("User %s: was created ", username);
   return 0;
 }
-int insert_session_token(char *username, char *hashed_password) {
+int insert_session_token(char *username, char *session_token) {
   MYSQL *conn = init_db_conn();
 
-  char session_token[32];
   char token_insert_query[512];
 
   snprintf(token_insert_query, sizeof(token_insert_query),

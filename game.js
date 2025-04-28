@@ -80,6 +80,10 @@ async function setup() {
           boardButton.disabled = true;
           boardButton.style.borderWidth = '2px';
           $('h1').text(`Welcome to Connect Four!`);
+          console.log('H3 TEXT');
+          $('h3').text(`Player ${msg.currentTurn}: your turn`);
+          $('h3').text(`Player ${msg.currentTurn}: your turn`).css('display', 'block');
+
         });
 
         $('h3').text(`New Game Starting...`).css('color', 'black');

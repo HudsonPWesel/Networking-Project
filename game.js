@@ -1,13 +1,13 @@
 import { createSocket } from './socket.js';
 
-const playerName = sessionStorage.getItem("username");
+const playerName = localStorage.getItem("username");
 if (!playerName) {
   alert("No username found. Please login first.");
   window.location.href = "/login.html";
 }
 
 // --- Setup player color ---
-let playerColor = sessionStorage.getItem("playerColor");
+let playerColor = localStorage.getItem("playerColor");
 const colors = [
   'rgb(237, 45, 73)', 'rgb(106, 168, 79)', 'rgb(255, 126, 185)', 'rgb(225, 245, 245)',
   'rgb(76, 141, 255)', 'rgb(255, 187, 82)', 'rgb(155, 86, 255)', 'rgb(60, 60, 60)'
@@ -15,7 +15,7 @@ const colors = [
 
 if (!playerColor) {
   playerColor = colors[Math.floor(Math.random() * colors.length)];
-  sessionStorage.setItem("playerColor", playerColor);
+  localStorage.setItem("playerColor", playerColor);
 }
 
 // --- Game variables ---

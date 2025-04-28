@@ -1,8 +1,8 @@
-import { createSocket, getSocket } from './socket.js';
+import { createSocket } from './socket.js';
 
 const playerCountEl = document.getElementById("playerCount");
 const statusEl = document.getElementById("status");
-
+let socket;
 
 window.addEventListener("load", async () => {
   const username = localStorage.getItem("username");
@@ -13,12 +13,11 @@ window.addEventListener("load", async () => {
 
   try {
     console.log("Trying to create socetk")
-    await createSocket(username);
-    let socket = getSocket(username);
+    socket = createSocket(username);
 
     socket.onopen = () => {
       console.log("Connected to WebSocket as", username);
-      socket.send(JSON.stringify({ type: "join-waiting-room", username }));
+      socket.send(JSON.stringify({ type: "join", username }));
     };
 
     socket.onmessage = (event) => {
@@ -27,9 +26,9 @@ window.addEventListener("load", async () => {
 
       if (message.type === "waiting-room-update") {
         playerCountEl.textContent = message.playerCount;
-      } else if (message.type === "game-start") {
+      } else if (message.type === "start") {
         statusEl.textContent = "Match found! Starting game...";
-        window.location.href = "/game.html";
+        window.location.href = "/Networking-Project/game.html";
       }
     };
 

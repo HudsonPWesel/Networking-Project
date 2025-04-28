@@ -17,11 +17,18 @@ document.getElementById("loginForm").addEventListener("submit", async function(e
       socket.onmessage = (e) => {
         console.log("Received after login:", e.data);
         const data = JSON.parse(e.data);
-        localStorage.setItem("username", username);
 
-        if (data.redirect) {
-          window.location.href = data.redirect;
+        if (type === "session_token") {
+
+          localStorage.setItem("session_token", data.session_token);
+          localStorage.setItem("username", username);
+
+          if (data.redirect)
+            window.location.href = data.redirect;
+
         }
+
+
       };
     };
 

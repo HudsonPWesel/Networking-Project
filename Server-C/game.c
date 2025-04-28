@@ -28,10 +28,17 @@ void handle_game_move(cJSON *json_data, int current_fd) {
   int column = colItem->valueint;
 
   GameSession *game = find_session_by_fd(current_fd);
+
+  if (!game) {
+    send_error(current_fd, "Session not found.");
+    return;
+  }
+
   printf("\nNTH TURN %d\n", game->nth_turn);
   // printf("IS GAME ACTIVE %d", game->current_turn_fd);
 
-  printf("fd(%d) | Current Player fd (%d)", current_fd, game->current_turn_fd);
+  printf("fd(%d) | Current Player fd (%d)\n", current_fd,
+         game->current_turn_fd);
 
   if (current_fd != game->current_turn_fd) {
     send_error(current_fd, "Not your turn.");

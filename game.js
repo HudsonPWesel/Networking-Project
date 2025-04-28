@@ -78,6 +78,8 @@ async function setup() {
         document.querySelectorAll('#board_btn').forEach(boardButton => {
           boardButton.style.backgroundColor = DEFAULT_COLOR;
           boardButton.disabled = true;
+          boardButton.style.borderWidth = '2px';
+          $('h1').text(`Welcome to Connect Four!`);
         });
 
         $('h3').text(`New Game Starting...`).css('color', 'black');

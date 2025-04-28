@@ -56,6 +56,10 @@ void handle_game_move(cJSON *json_data, int current_fd) {
 
   game->nth_turn++;
 
+  switch_turn(game);
+  printf("\nSending Game Update\n");
+  send_game_update(game);
+
   int win = 0;
   if (game->nth_turn >= 6) {
     win = check_win(game->board, row, column);
@@ -66,10 +70,6 @@ void handle_game_move(cJSON *json_data, int current_fd) {
     printf("\nPLAYER WON\n");
     send_win_message(game, current_fd);
     game->game_active = 0;
-  } else {
-    switch_turn(game);
-    printf("\nSending Game Update\n");
-    send_game_update(game);
   }
 }
 void send_game_start(int fd, int player_num, int current_player_num) {

@@ -1,4 +1,6 @@
-var socket = null;
+import { createSocket } from './socket.js'
+
+let socket;
 
 function getSocketStatus() {
   setInterval(() => {
@@ -11,34 +13,40 @@ function getSocketStatus() {
   }, 5000);
 }
 
-function initWebSocket() {
-  socket = new WebSocket("ws://10.18.102.38:9999");
+function main() {
+  const username = document.getElementById("username").value;
+  const password = document.getElementById("password").value;
+  socket = createSocket(username);
 
   socket.onopen = () => {
     console.log("WebSocket connection established");
 
+
+    console.log("Sending login credentials:", { username, password });
+    localStorage.setItem("username", username);
+    socket.send(JSON.stringify({ type: "signup", username, password }));
+
     // Get the session_id from cookies and send for authentication
-    const session_id = document.cookie.split("=")[1];
-    if (session_id) {
-      socket.send(JSON.stringify({ type: "auth", session_id }));
-    } else {
-      console.error("Session ID is missing.");
-    }
+    //const session_id = document.cookie.split("=")[1];
+    //if (session_id) {
+    //  socket.send(JSON.stringify({ type: "auth", session_id }));
+    //} else {
+    //  console.error("Session ID is missing.");
+    //}
   };
 
   socket.onmessage = function(event) {
     const data = JSON.parse(event.data);
+    const { type, redirect_url } = data;
+    console.log(`Message Received: ${data}`);
 
-    if (data.type === "session_token") {
+    if (type === "session_token") {
       localStorage.setItem("session_token", data.session_token);
 
-      if (data.redirect) {
-        window.location.href = data.redirect;
-      }
+      if (redirect_url)
+        window.location.href = redirect_url;
     }
-
   };
-
 
   socket.onerror = (error) => {
     console.error("WebSocket Error:", error);
@@ -49,17 +57,8 @@ function initWebSocket() {
   };
 }
 
-document.getElementById("loginForm").addEventListener("submit", function(event) {
-  event.preventDefault();
-
-  const username = document.getElementById("username").value;
-  const password = document.getElementById("password").value;
-
-  initWebSocket();
-
-  socket.onopen = () => {
-    console.log("Sending login credentials:", { username, password });
-    socket.send(JSON.stringify({ type: "signup", username, password }));
-  };
+document.getElementById("loginForm").addEventListener("submit", function(e) {
+  e.preventDefault();
+  main();
 });
 

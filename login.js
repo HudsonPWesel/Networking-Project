@@ -1,4 +1,4 @@
-import { createSocket, closeSocket } from './socket.js';
+import { createSocket } from './socket.js';
 
 document.getElementById("loginForm").addEventListener("submit", async function(event) {
   event.preventDefault();
@@ -7,22 +7,29 @@ document.getElementById("loginForm").addEventListener("submit", async function(e
   const password = document.getElementById("password").value;
 
   try {
-    const socket = await createSocket(username);
-    console.log("WebSocket is open, sending login...");
+    const socket = createSocket(username);
 
-    socket.send(JSON.stringify({ type: "login", username, password }));
+    socket.onopen = () => {
+      console.log("WebSocket is open, sending login...");
 
-    socket.onmessage = (e) => {
-      console.log("Received after login:", e.data);
-      const data = JSON.parse(e.data);
-      localStorage.setItem("username", username);
+      socket.send(JSON.stringify({ type: "login", username, password }));
 
-      if (data.redirect) {
-        window.location.href = data.redirect;
-      }
+      socket.onmessage = (e) => {
+        console.log("Received after login:", e.data);
+        const data = JSON.parse(e.data);
+        localStorage.setItem("username", username);
+
+        if (data.redirect) {
+          window.location.href = data.redirect;
+        }
+      };
     };
 
-    socket.onclose(() => { closeSocket(username); })
+    socket.onerror = (err) => {
+      console.error("WebSocket error:", err);
+    };
+
+    // socket.onclose(() => { closeSocket(username); })
 
   } catch (err) {
     console.error("Failed to connect socket:", err);

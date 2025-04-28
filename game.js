@@ -1,4 +1,4 @@
-import { createSocket, getSocket } from './socket.js';
+import { createSocket } from './socket.js';
 
 const playerName = sessionStorage.getItem("username");
 if (!playerName) {

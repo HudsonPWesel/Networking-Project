@@ -72,6 +72,12 @@ async function setup() {
         console.log(`Is My Turn : ${isMyTurn}`);
       }
 
+      else if (msg.type === "tie") {
+
+        $('h1').text(`Game Tied! Resseting`);
+        console.log('TIE RECIEVED');
+
+      }
       else if (msg.type === "reset") {
         console.log("RESET MESSAGE RECEIVED");
 

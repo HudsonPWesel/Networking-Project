@@ -70,8 +70,38 @@ void handle_game_move(cJSON *json_data, int current_fd) {
     printf("\nPLAYER WON\n");
     send_win_message(game, current_fd);
     game->game_active = 0;
+  } else if (check_tie(game->board)) {
+    printf("\nTIE GAME, TIE & RESET");
+    send_tie_message(game);
+    reset_game(data, current_fd);
   }
 }
+
+int check_tie(int board[ROWS][COLS]) {
+  // Check if any cell is still empty
+  for (int r = 0; r < ROWS; r++) {
+    for (int c = 0; c < COLS; c++) {
+      if (board[r][c] == 0) {
+        return 0; // Not a tie, empty cell found
+      }
+    }
+  }
+  return 1; // Board full and no winner: tie
+}
+
+void send_tie_message(GameSession *game) {
+
+  cJSON *msg = cJSON_CreateObject();
+  cJSON_AddStringToObject(msg, "type", "tie");
+  char *text = cJSON_PrintUnformatted(msg);
+
+  send_websocket_message(game->player1_fd, text);
+  send_websocket_message(game->player2_fd, text);
+
+  free(text);
+  cJSON_Delete(msg);
+}
+
 void send_game_start(int fd, int player_num, int current_player_num) {
   cJSON *msg = cJSON_CreateObject();
   cJSON_AddStringToObject(msg, "type", "start");

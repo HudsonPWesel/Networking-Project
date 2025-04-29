@@ -40,6 +40,7 @@ void send_win_message(GameSession *game, int winner_fd);
 int check_win(int board[ROWS][COLS], int row, int col);
 void send_game_start(int fd, int player_num, int current_player_num);
 void send_tie_message(GameSession *game);
+void send_leaderboard_message(cJSON *json_data, int current_fd);
 
 int check_horizontal(int board[ROWS][COLS], int row, int player);
 int check_vertical(int board[ROWS][COLS], int col, int player);

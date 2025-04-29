@@ -46,6 +46,7 @@ int insert_user(char *username, char *hashed_password, char *token_sql) {
   printf("User %s: was created ", username);
   return 0;
 }
+
 int insert_session_token(char *username, char *session_token) {
   MYSQL *conn = init_db_conn();
 
@@ -91,6 +92,45 @@ int get_user(char *username, char *hashed_password, MYSQL *conn) {
   }
 
   // Success, continue
+  mysql_free_result(res);
+  return 0;
+}
+
+int get_leaderboard(int scores[MAX_LEADERBOARD_ENTRIES]) {
+  MYSQL *conn = init_db_conn();
+
+  char query[512];
+  snprintf(query, sizeof(query),
+           "SELECT username, total_score FROM users ORDER BY total_score DESC "
+           "LIMIT 10");
+
+  if (mysql_query(conn, query)) {
+    fprintf(stderr, "Leaderboard query failed: %s\n", mysql_error(conn));
+    mysql_close(conn);
+    return 1;
+  }
+
+  MYSQL_RES *res = mysql_store_result(conn);
+  if (res == NULL) {
+    fprintf(stderr, "Failed to store result set: %s\n", mysql_error(conn));
+    mysql_close(conn);
+    return 1;
+  }
+
+  MYSQL_ROW row;
+  int index = 0;
+
+  while ((row = mysql_fetch_row(res)) && index < MAX_LEADERBOARD_ENTRIES) {
+    if (row[1]) {
+      scores[index] = atoi(row[1]);
+      index++;
+    }
+  }
+
+  while (index < MAX_LEADERBOARD_ENTRIES) {
+    scores[index++] = 0;
+  }
+
   mysql_free_result(res);
   return 0;
 }

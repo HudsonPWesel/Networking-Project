@@ -1,5 +1,7 @@
 #include "game.h"
+#include "database.h"
 #include "websocket.h"
+#include <cjson/cJSON.h>
 #include <time.h>
 
 #define MAX_QUEUE 100
@@ -354,7 +356,27 @@ void create_new_game_session(int fd1, int fd2) {
     }
   }
 }
+void send_leaderboard_message(cJSON *json_data, int current_fd) {
+  cJSON *msg = cJSON_CreateObject();
+  cJSON_AddStringToObject(msg, "type", "leaderboard");
 
+  int scores[MAX_LEADERBOARD_ENTRIES];
+  get_leaderboard(scores);
+
+  cJSON *leaderboard = cJSON_CreateArray();
+
+  for (int i = 0; i < MAX_LEADERBOARD_ENTRIES; i++) {
+    cJSON_AddItemToArray(leaderboard, cJSON_CreateNumber(scores[i]));
+  }
+
+  cJSON_AddItemToObject(msg, "scores", leaderboard);
+  char *text = cJSON_PrintUnformatted(msg);
+
+  send_websocket_message(current_fd, text);
+
+  free(text);
+  cJSON_Delete(msg); // Always delete to avoid memory leak
+}
 void send_waiting_message(int fd) {
   cJSON *msg = cJSON_CreateObject();
   cJSON_AddStringToObject(msg, "type", "waiting");
@@ -400,7 +422,7 @@ void add_player_to_queue(cJSON *json_data, int fd) {
 
     create_new_game_session(p1.fd, p2.fd);
 
-    // Shift remaining players in queue
+    // NEED TO SHIFT PLAYERAS AFTER -2
     for (int i = 2; i < queue_size; i++) {
       player_queue[i - 2] = player_queue[i];
     }

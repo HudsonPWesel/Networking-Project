@@ -77,7 +77,6 @@ void process_client_messages(ServerState *state, int client_idx,
       return;
     }
 
-    // Analyze frame header
     uint8_t first_byte = buffer[0];
     uint8_t second_byte = buffer[1];
     uint8_t opcode = first_byte & 0x0F;
@@ -86,22 +85,22 @@ void process_client_messages(ServerState *state, int client_idx,
     uint64_t payload_len = second_byte & 0x7F;
     int header_size = 2;
 
-    // Extended payload length
+    // adjust plyoad length
     if (payload_len == 126)
       header_size += 2;
     else if (payload_len == 127)
       header_size += 8;
 
-    // Masked frames require 4 additional bytes
+    // Masked frames require 4 additional bytes of data
     if (masked)
       header_size += 4;
 
     if (peek_bytes < header_size) {
       printf("Not enough data for full header yet (client %d)\n", client_idx);
-      return; // Wait for more data
+      return;
     }
 
-    // Get actual payload length
+    // Get REALD PLAYLOAD  length
     uint64_t actual_payload_len = payload_len;
     if (payload_len == 126) {
       // 16-bit length
@@ -118,10 +117,9 @@ void process_client_messages(ServerState *state, int client_idx,
 
     if (peek_bytes < total_frame_size) {
       printf("Not enough data for full frame yet (client %d)\n", client_idx);
-      return; // Wait for complete frame
+      return;
     }
 
-    // Now read the complete frame
     int read_bytes = recv(current_fd, buffer, total_frame_size, 0);
     if (read_bytes <= 0) {
       printf("Client %d (fd: %d) closed connection during frame read\n",
@@ -133,7 +131,6 @@ void process_client_messages(ServerState *state, int client_idx,
       return;
     }
 
-    // Handle different opcodes
     switch (opcode) {
     case 0x8: // Close frame
       printf("Client %d sent Close frame\n", client_idx);
@@ -142,16 +139,6 @@ void process_client_messages(ServerState *state, int client_idx,
       state->client[client_idx] = -1;
       state->handshake_done[client_idx] = 0;
       return;
-
-    case 0x9: // Ping frame
-      printf("Client %d sent Ping frame\n", client_idx);
-      // Send Pong response
-      // Implementation not shown here
-      break;
-
-    case 0xA: // Pong frame
-      printf("Client %d sent Pong frame\n", client_idx);
-      break;
 
     case 0x1: // Text frame
     case 0x2: // Binary frame
@@ -176,6 +163,8 @@ void process_client_messages(ServerState *state, int client_idx,
 
         if (strcmp(type->valuestring, "join") == 0) {
           add_player_to_queue(json_data, current_fd);
+          send_leaderboard_message(json_data, current_fd);
+
         } else if (!strcmp(type->valuestring, "login") ||
                    !strcmp(type->valuestring, "signup")) {
           handle_signup_or_login(json_data, current_fd);

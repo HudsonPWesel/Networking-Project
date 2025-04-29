@@ -10,6 +10,7 @@ MYSQL *init_db_conn();
 int insert_user(char *username, char *hashed_password, char *token_sql);
 int insert_session_token(char *username, char *session_token);
 int get_user(char *username, char *hashed_password, MYSQL *conn);
-int get_leaderboard(int scores[MAX_LEADERBOARD_ENTRIES]);
+int get_leaderboard(int scores[MAX_LEADERBOARD_ENTRIES],
+                    char usernames[MAX_LEADERBOARD_ENTRIES][64]);
 
 #endif

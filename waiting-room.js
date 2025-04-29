@@ -2,6 +2,7 @@ import { createSocket } from './socket.js';
 
 const playerCountEl = document.getElementById("playerCount");
 const statusEl = document.getElementById("status");
+const leaderboardListEl = document.getElementById("leaderboardList");
 let socket;
 
 window.addEventListener("load", async () => {
@@ -12,7 +13,7 @@ window.addEventListener("load", async () => {
   }
 
   try {
-    console.log("Trying to create socetk")
+    console.log("Trying to create socket");
     socket = createSocket(username);
 
     socket.onopen = () => {
@@ -29,6 +30,8 @@ window.addEventListener("load", async () => {
       } else if (message.type === "start") {
         statusEl.textContent = "Match found! Starting game...";
         window.location.href = "/Networking-Project/game.html";
+      } else if (message.type === "leaderboard") {
+        updateLeaderboard(message.users, message.scores);
       }
     };
 
@@ -41,7 +44,17 @@ window.addEventListener("load", async () => {
       statusEl.textContent = "Disconnected from server.";
     };
   } catch (err) {
-    console.error("Socket conn failed:", err);
+    console.error("Socket connection failed:", err);
   }
 });
+
+function updateLeaderboard(users, scores) {
+  leaderboardListEl.innerHTML = '';
+
+  for (let i = 0; i < users.length; i++) {
+    const li = document.createElement("li");
+    li.textContent = `${users[i]}: ${scores[i]} pts`;
+    leaderboardListEl.appendChild(li);
+  }
+}
 

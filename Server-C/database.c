@@ -1,5 +1,6 @@
 #include "database.h"
 #include <stdio.h>
+#include <string.h>
 
 // INITIATE SQL CONN
 MYSQL *init_db_conn() {
@@ -95,8 +96,8 @@ int get_user(char *username, char *hashed_password, MYSQL *conn) {
   mysql_free_result(res);
   return 0;
 }
-
-int get_leaderboard(int scores[MAX_LEADERBOARD_ENTRIES]) {
+int get_leaderboard(int scores[MAX_LEADERBOARD_ENTRIES],
+                    char usernames[MAX_LEADERBOARD_ENTRIES][64]) {
   MYSQL *conn = init_db_conn();
 
   char query[512];
@@ -121,16 +122,20 @@ int get_leaderboard(int scores[MAX_LEADERBOARD_ENTRIES]) {
   int index = 0;
 
   while ((row = mysql_fetch_row(res)) && index < MAX_LEADERBOARD_ENTRIES) {
-    if (row[1]) {
+    if (row[0] && row[1]) {
+      strncpy(usernames[index], row[0], 63);
+      usernames[index][63] = '\0';
       scores[index] = atoi(row[1]);
       index++;
     }
   }
 
-  while (index < MAX_LEADERBOARD_ENTRIES) {
-    scores[index++] = 0;
-  }
+  // While (index < MAX_LEADERBOARD_ENTRIES) {
+  //   usernames[index][0] = '\0'; // Empty username
+  //   scores[index++] = 0;
+  // }
 
   mysql_free_result(res);
+  mysql_close(conn);
   return 0;
 }

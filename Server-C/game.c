@@ -361,22 +361,27 @@ void send_leaderboard_message(cJSON *json_data, int current_fd) {
   cJSON_AddStringToObject(msg, "type", "leaderboard");
 
   int scores[MAX_LEADERBOARD_ENTRIES];
-  get_leaderboard(scores);
+  char usernames[MAX_LEADERBOARD_ENTRIES][64];
+  get_leaderboard(scores, usernames);
 
   cJSON *leaderboard = cJSON_CreateArray();
+  cJSON *users = cJSON_CreateArray();
 
   for (int i = 0; i < MAX_LEADERBOARD_ENTRIES; i++) {
     cJSON_AddItemToArray(leaderboard, cJSON_CreateNumber(scores[i]));
+    cJSON_AddItemToArray(users, cJSON_CreateString(usernames[i]));
   }
 
   cJSON_AddItemToObject(msg, "scores", leaderboard);
-  char *text = cJSON_PrintUnformatted(msg);
+  cJSON_AddItemToObject(msg, "users", users);
 
+  char *text = cJSON_PrintUnformatted(msg);
   send_websocket_message(current_fd, text);
 
   free(text);
-  cJSON_Delete(msg); // Always delete to avoid memory leak
+  cJSON_Delete(msg); // Clean up memory
 }
+
 void send_waiting_message(int fd) {
   cJSON *msg = cJSON_CreateObject();
   cJSON_AddStringToObject(msg, "type", "waiting");

@@ -28,9 +28,8 @@ let playerNumber;
 
 
 function reset_handler() {
-  $('h1').text(`Welcome to Connect Four!`);
-  //e.preventDefault();
   socket.send(JSON.stringify({ 'type': 'reset', 'playerNumber': playerNumber }));
+  $('h1').text(`Welcome to Connect Four!`);
   console.log("Resetting Board");
   document.querySelectorAll('#board_btn').forEach(boardButton => { console.log(boardButton); boardButton.style.backgroundColor = DEFAULT_COLOR; boardButton.style.borderWidth = '2px'; });
 }
@@ -104,15 +103,21 @@ async function setup() {
         endGame(msg.winner);
       }
       else if (msg.type === "tie") {
-        //tieCheck()
         console.log("Game Tied");
         reset_handler()
+      } else if (msg.type === "redirect") {
+        if (msg.redirect)
+          setTimeout(() => { window.location.href = msg.redirect; }, 2000);
+
       }
     };
+    socket.onclose = (e) => {
+      console.log("Socket Closed", e);
+      socket.send(JSON.stringify({ type: "disconnect", data: { player: playerName } }));
+    }
 
   } catch (error) {
     console.error("Failed to connect:", error);
-
   }
 }
 

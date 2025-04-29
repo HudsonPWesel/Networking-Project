@@ -71,10 +71,13 @@ void handle_game_move(cJSON *json_data, int current_fd) {
   if (win) {
     printf("\nPLAYER WON\n");
     send_win_message(game, current_fd);
-    printf("Username %s", cJSON_GetObjectItem(data, "player")->valuestring);
-    increase_player_score(cJSON_GetObjectItem(data, "player")->valuestring);
-    game->game_active = 0;
-    printf("RESETTING IS_ACTIVE = 0 %d", game->game_active);
+    if (cJSON_GetObjectItem(data, "player")) {
+
+      printf("Username %s", cJSON_GetObjectItem(data, "player")->valuestring);
+      increase_player_score(cJSON_GetObjectItem(data, "player")->valuestring);
+      game->game_active = 0;
+      printf("RESETTING IS_ACTIVE = 0 %d", game->game_active);
+    }
   } else if (check_tie(game->board)) {
     printf("\nTIE GAME, TIE & RESET");
     send_tie_message(game);
@@ -495,6 +498,7 @@ void add_player_to_queue(cJSON *json_data, int fd) {
   p.fd = fd;
 
   cJSON *username_item = cJSON_GetObjectItem(json_data, "username");
+
   if (username_item && cJSON_IsString(username_item)) {
     strncpy(p.username, username_item->valuestring, sizeof(p.username) - 1);
     p.username[sizeof(p.username) - 1] = '\0'; // Safe null-terminate

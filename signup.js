@@ -21,7 +21,7 @@ function main() {
   socket.onopen = () => {
     console.log("WebSocket connection established");
     console.log("Sending login credentials:", { username, password });
-    localStorage.setItem("username", username);
+    sessionStorage.setItem("username", username);
     socket.send(JSON.stringify({ type: "signup", username, password }));
 
     // Get the session_id from cookies and send for authentication
@@ -38,7 +38,7 @@ function main() {
     const { redirect } = data;
     console.log("Message Received:", data);
 
-    localStorage.setItem("session_token", data.session_token);
+    sessionStorage.setItem("session_token", data.session_token);
 
     console.log("Redirecting To : ", redirect);
     if (redirect)

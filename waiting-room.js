@@ -6,7 +6,7 @@ const leaderboardListEl = document.getElementById("leaderboardList");
 let socket;
 
 window.addEventListener("load", async () => {
-  const username = localStorage.getItem("username");
+  const username = sessionStorage.getItem("username");
   if (!username) {
     window.location.href = "/login.html";
     return;
@@ -54,7 +54,7 @@ function updateLeaderboard(users, scores) {
   for (let i = 0; i < users.length; i++) {
     const li = document.createElement("li");
     li.textContent = `${users[i]}: ${scores[i]} pts`;
-    if (users[i] === localStorage.getItem('username'))
+    if (users[i] === sessionStorage.getItem('username'))
       li.style.fontWeight = 'bold';
     leaderboardListEl.appendChild(li);
   }

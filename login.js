@@ -21,8 +21,8 @@ document.getElementById("loginForm").addEventListener("submit", async function(e
 
         if (data.type === "session_token") {
 
-          localStorage.setItem("session_token", data.session_token);
-          localStorage.setItem("username", data.username);
+          sessionStorage.setItem("session_token", data.session_token);
+          sessionStorage.setItem("username", data.username);
 
           if (data.redirect)
             window.location.href = data.redirect;

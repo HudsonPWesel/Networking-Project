@@ -71,6 +71,9 @@ void handle_game_move(cJSON *json_data, int current_fd) {
   if (win) {
     printf("\nPLAYER WON\n");
     send_win_message(game, current_fd);
+    printf("Username %s", cJSON_GetObjectItem(data, "player")->valuestring);
+    increase_player_score(cJSON_GetObjectItem(data, "player")->valuestring);
+
     game->game_active = 0;
   } else if (check_tie(game->board)) {
     printf("\nTIE GAME, TIE & RESET");
@@ -78,9 +81,37 @@ void handle_game_move(cJSON *json_data, int current_fd) {
     reset_game(data, current_fd);
   }
 }
+int increase_player_score(const char *username) {
+  MYSQL *conn = init_db_conn();
+
+  if (conn == NULL) {
+    fprintf(stderr, "Database connection failed.\n");
+    return 1;
+  }
+
+  char query[512];
+  snprintf(
+      query, sizeof(query),
+      "UPDATE users SET total_score = total_score + 10 WHERE username = '%s'",
+      username);
+
+  if (mysql_query(conn, query)) {
+    fprintf(stderr, "Failed to update player score: %s\n", mysql_error(conn));
+    mysql_close(conn);
+    return 1;
+  }
+
+  if (mysql_affected_rows(conn) == 0) {
+    fprintf(stderr, "No user found with username '%s'.\n", username);
+    mysql_close(conn);
+    return 1;
+  }
+
+  mysql_close(conn);
+  return 0;
+}
 
 int check_tie(int board[ROWS][COLS]) {
-  // Check if any cell is still empty
   for (int r = 0; r < ROWS; r++) {
     for (int c = 0; c < COLS; c++) {
       if (board[r][c] == 0) {

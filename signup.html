@@ -4,41 +4,55 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login Form</title>
-    <style>
+        <style>
+        *{
+            font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+        }
         body {
-            font-family: Arial, sans-serif;
+            font-weight: 600;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
-            background-color: #f4f4f4;
+            background-color: #e4e4e4;
         }
         .signup-container {
             background: white;
             padding: 20px;
-            border-radius: 5px;
+            border-radius: 10px;
             box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
             width: 300px;
             text-align: center;
         }
         .signup-container input {
-            width: 100%;
+            width: 270px;
             padding: 10px;
             margin: 10px 0;
             border: 1px solid #ccc;
-            border-radius: 5px;
+            border-radius: 8px;
         }
+        .signup-container input:hover {
+            border: 1px solid #999;        
+        }
+        
         .signup-container button {
-            width: 100%;
+            width: 200px;
             padding: 10px;
-            background: blue;
+            background:  royalblue;
             color: white;
             border: none;
-            border-radius: 5px;
+            border-radius: 10px;
             cursor: pointer;
+            margin-top: 18px;
+            margin-inline: 35px;
+            margin-bottom: 6px;
+            transition-duration: 0.2s;
         }
         .signup-container button:hover {
-            background: darkblue;
+            background: blue;
+        }
+        a {
+            font-size: 12px;
         }
     </style>
 </head>

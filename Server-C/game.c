@@ -369,24 +369,68 @@ void switch_turn(GameSession *game) {
     game->current_turn_fd = game->player1_fd;
 }
 
-void create_new_game_session(int fd1, int fd2) {
+void create_new_game_session(QueuedPlayer *p1, QueuedPlayer *p2) {
   for (int i = 0; i < MAX_SESSIONS; i++) {
     if (!sessions[i].game_active) {
-      sessions[i].player1_fd = fd1;
-      sessions[i].player2_fd = fd2;
-      sessions[i].current_turn_fd = fd1;
+      sessions[i].player1_fd = p1->fd;
+      sessions[i].player2_fd = p2->fd;
+      sessions[i].current_turn_fd = p1->fd;
+
+      strncpy(sessions[i].player1_username, p1->username,
+              sizeof(sessions[i].player1_username) - 1);
+      sessions[i].player1_username[sizeof(sessions[i].player1_username) - 1] =
+          '\0';
+
+      strncpy(sessions[i].player2_username, p2->username,
+              sizeof(sessions[i].player2_username) - 1);
+      sessions[i].player2_username[sizeof(sessions[i].player2_username) - 1] =
+          '\0';
+
       memset(sessions[i].board, 0, sizeof(sessions[i].board));
       sessions[i].game_active = 1;
 
-      send_game_start(fd1, 1, 1);
-      send_game_start(fd2, 2, 1);
+      send_game_start(p1->fd, 1, 1);
+      send_game_start(p2->fd, 2, 1);
 
-      printf("Starting game between  (fd %d) and  (fd %d)\n",
-             sessions[i].player1_fd, sessions[i].player2_fd);
+      printf("Starting game between '%s' (fd %d) and '%s' (fd %d)\n",
+             p1->username, p1->fd, p2->username, p2->fd);
+
       return;
     }
   }
 }
+
+void handle_disconnect(int disconnected_fd) {
+  GameSession *game = find_session_by_fd(disconnected_fd);
+
+  if (game && game->game_active) {
+    printf("Player (fd: %d) disconnected. Declaring opponent as winner.\n",
+           disconnected_fd);
+
+    int winner_fd;
+    const char *winner_username = NULL;
+
+    if (disconnected_fd == game->player1_fd) {
+      winner_fd = game->player2_fd;
+      winner_username = game->player2_username;
+    } else {
+      winner_fd = game->player1_fd;
+      winner_username = game->player1_username;
+    }
+
+    if (winner_fd != -1 && winner_username) {
+      send_win_message(game, winner_fd);
+
+      printf("\nPLAYER WON (username: %s)\n", winner_username);
+
+      increase_player_score(winner_username); // <-- Update their score
+    }
+
+    game->game_active = 0; // End the game
+    // TODO: REDIRECT TO WAITING ROOM ON WIN
+  }
+}
+
 void send_leaderboard_message(cJSON *json_data, int current_fd) {
   cJSON *msg = cJSON_CreateObject();
   cJSON_AddStringToObject(msg, "type", "leaderboard");
@@ -443,6 +487,7 @@ void add_player_to_queue(cJSON *json_data, int fd) {
     p.username[sizeof(p.username) - 1] = '\0'; // Safe null-terminate
   } else {
     strncpy(p.username, "anon", sizeof(p.username));
+    p.username[sizeof(p.username) - 1] = '\0'; // Also null-terminate here
   }
 
   player_queue[queue_size++] = p;
@@ -456,9 +501,9 @@ void add_player_to_queue(cJSON *json_data, int fd) {
     printf("Matching players: %s (fd %d) vs %s (fd %d)\n", p1.username, p1.fd,
            p2.username, p2.fd);
 
-    create_new_game_session(p1.fd, p2.fd);
+    create_new_game_session(&p1, &p2);
 
-    // NEED TO SHIFT PLAYERAS AFTER -2
+    // Shift remaining players down
     for (int i = 2; i < queue_size; i++) {
       player_queue[i - 2] = player_queue[i];
     }

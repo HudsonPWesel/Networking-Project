@@ -138,6 +138,7 @@ void process_client_messages(ServerState *state, int client_idx,
       FD_CLR(current_fd, &(state->allset));
       state->client[client_idx] = -1;
       state->handshake_done[client_idx] = 0;
+      handle_disconnect(current_fd);
       return;
 
     case 0x1: // Text frame
@@ -172,7 +173,6 @@ void process_client_messages(ServerState *state, int client_idx,
           handle_game_move(json_data, current_fd);
         } else if (!strcmp(type->valuestring, "reset")) {
           reset_game(json_data, current_fd);
-
         } else {
           printf("Unknown message type: %s\n", type->valuestring);
         }

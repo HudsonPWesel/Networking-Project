@@ -54,6 +54,8 @@ function updateLeaderboard(users, scores) {
   for (let i = 0; i < users.length; i++) {
     const li = document.createElement("li");
     li.textContent = `${users[i]}: ${scores[i]} pts`;
+    if (users[i] === localStorage.getItem('username'))
+      li.style.fontWeight = 'bold';
     leaderboardListEl.appendChild(li);
   }
 }

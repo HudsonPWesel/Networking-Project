@@ -29,9 +29,9 @@ let playerNumber;
 
 function reset_handler() {
   socket.send(JSON.stringify({ 'type': 'reset', 'playerNumber': playerNumber }));
-  $('h1').text(`Welcome to Connect Four!`);
-  console.log("Resetting Board");
-  document.querySelectorAll('#board_btn').forEach(boardButton => { console.log(boardButton); boardButton.style.backgroundColor = DEFAULT_COLOR; boardButton.style.borderWidth = '2px'; });
+  //$('h1').text(`Welcome to Connect Four!`);
+  //console.log("Resetting Board");
+  //document.querySelectorAll('#board_btn').forEach(boardButton => { console.log(boardButton); boardButton.style.backgroundColor = DEFAULT_COLOR; boardButton.style.borderWidth = '2px'; });
 }
 
 async function setup() {
@@ -85,7 +85,6 @@ async function setup() {
           boardButton.disabled = true;
           boardButton.style.borderWidth = '2px';
           $('h1').text(`Welcome to Connect Four!`);
-          console.log('H3 TEXT');
           $('h3').text(`Player ${msg.currentTurn}: your turn`);
           $('h3').text(`Player ${msg.currentTurn}: your turn`).css('display', 'block');
 

@@ -495,12 +495,17 @@ void add_player_to_queue(cJSON *json_data, int fd) {
   p.fd = fd;
 
   cJSON *username_item = cJSON_GetObjectItem(json_data, "username");
+
+  for (int i = 0; i < MAX_QUEUE; i++) {
+    if (strcmp(username_item->valuestring, player_queue[i].username) == 0) {
+      printf("User already in queue");
+      send_error(fd, "User already in queue");
+      return;
+    }
+  }
   if (username_item && cJSON_IsString(username_item)) {
     strncpy(p.username, username_item->valuestring, sizeof(p.username) - 1);
     p.username[sizeof(p.username) - 1] = '\0'; // Safe null-terminate
-  } else {
-    strncpy(p.username, "anon", sizeof(p.username));
-    p.username[sizeof(p.username) - 1] = '\0'; // Also null-terminate here
   }
 
   player_queue[queue_size++] = p;

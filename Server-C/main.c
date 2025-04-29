@@ -12,7 +12,7 @@ int main(int argc, char const *argv[]) {
   printf("WebSocket server started on port %d\n", PORT);
 
   for (;;) {
-    state.rset = state.allset; // Reset the ready set
+    state.rset = state.allset;
 
     printf("Waiting for activity (maxfd = %d)...\n", state.maxfd);
 

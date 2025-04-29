@@ -31,6 +31,9 @@ void handle_signup_or_login(cJSON *json, int client_fd) {
   const cJSON *username = cJSON_GetObjectItemCaseSensitive(json, "username");
   const cJSON *password = cJSON_GetObjectItemCaseSensitive(json, "password");
 
+  if (!(username && password))
+    return;
+
   printf(" Username : %s \n  Password : %s \n", username->valuestring,
          password->valuestring);
 

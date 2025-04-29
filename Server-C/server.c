@@ -10,7 +10,7 @@ void init_serverstate(ServerState *state, int server_fd) {
   state->maxi = -1;
   for (int i = 0; i < FD_SETSIZE; i++) {
     state->client[i] = -1;
-    state->handshake_done[i] = -1; // <- meaning "no client yet"
+    state->handshake_done[i] = -1;
   }
 
   FD_ZERO(&(state->allset));
@@ -38,7 +38,6 @@ void process_client_messages(ServerState *state, int client_idx,
   while (continue_processing) {
     bzero(buffer, sizeof(buffer));
 
-    // Peek at available data without removing from socket buffer
     int peek_bytes = recv(current_fd, buffer, sizeof(buffer) - 1, MSG_PEEK);
 
     if (peek_bytes <= 0) {
@@ -46,11 +45,10 @@ void process_client_messages(ServerState *state, int client_idx,
       close(current_fd);
       FD_CLR(current_fd, &(state->allset));
       state->client[client_idx] = -1;
-      state->handshake_done[client_idx] = 0; // Reset handshake status
-      return; // Exit the function as client disconnected
+      state->handshake_done[client_idx] = 0;
+      return;
     }
 
-    // Handle client based on handshake status
     if (state->handshake_done[client_idx] == 0) {
       // Process WebSocket handshake
       int read_bytes = recv(current_fd, buffer, sizeof(buffer) - 1, 0);
@@ -68,14 +66,12 @@ void process_client_messages(ServerState *state, int client_idx,
         state->client[client_idx] = -1;
         state->handshake_done[client_idx] = 0;
       }
-      return; // Handshake complete, will process frames on next select()
+      return;
     }
 
     // PROCess WebSocket frames====
-    if (peek_bytes < 2) {
-      // Not enough data for even basic frame header
+    if (peek_bytes < 2)
       return;
-    }
 
     uint8_t first_byte = buffer[0];
     uint8_t second_byte = buffer[1];
@@ -91,7 +87,6 @@ void process_client_messages(ServerState *state, int client_idx,
     else if (payload_len == 127)
       header_size += 8;
 
-    // Masked frames require 4 additional bytes of data
     if (masked)
       header_size += 4;
 
@@ -141,9 +136,8 @@ void process_client_messages(ServerState *state, int client_idx,
       handle_disconnect(current_fd);
       return;
 
-    case 0x1: // Text frame
-    case 0x2: // Binary frame
-      // Process the payload
+    case 0x1:              // Text frame
+    case 0x2:              // BINARY frame
       if (opcode == 0x1) { // Text frame
         cJSON *json_data = websocket_decode(buffer, read_bytes, current_fd);
         if (!json_data) {
@@ -189,7 +183,6 @@ void process_client_messages(ServerState *state, int client_idx,
       break;
     }
 
-    // Check if there might be more frames waiting
     peek_bytes = recv(current_fd, buffer, sizeof(buffer) - 1, MSG_PEEK);
     if (peek_bytes <= 0 || peek_bytes < 2) {
       continue_processing = 0; // No more complete frames available

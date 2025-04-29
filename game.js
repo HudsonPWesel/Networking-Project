@@ -7,10 +7,9 @@ if (!playerName) {
   window.location.href = "/login.html";
 }
 
-// --- Setup player color ---
 let playerColor = sessionStorage.getItem("playerColor");
 const colors = [
-  'rgb(237, 45, 73)', 'rgb(106, 168, 79)', 'rgb(255, 126, 185)', 'rgb(225, 245, 245)',
+  'rgb(237, 45, 73)', 'rgb(106, 168, 79)', 'rgb(255, 126, 185)',
   'rgb(76, 141, 255)', 'rgb(255, 187, 82)', 'rgb(155, 86, 255)', 'rgb(60, 60, 60)'
 ];
 
@@ -19,7 +18,6 @@ if (!playerColor) {
   sessionStorage.setItem("playerColor", playerColor);
 }
 
-// --- Game variables ---
 const DEFAULT_COLOR = "rgb(138, 138, 138)";
 let table = $('table tr');
 let isMyTurn = false;
@@ -172,7 +170,7 @@ function checkBottom(colIndex) {
 
 function checkTie() {
   for (let col = 0; col < 7; col++) {
-    for (let row = 0; row < 6; row++) { // 6 rows, not 7 dumbass
+    for (let row = 0; row < 6; row++) {
       if (returnColor(row, col) === DEFAULT_COLOR) {
         return false;
       }

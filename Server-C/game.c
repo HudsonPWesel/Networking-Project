@@ -118,11 +118,11 @@ int check_tie(int board[ROWS][COLS]) {
   for (int r = 0; r < ROWS; r++) {
     for (int c = 0; c < COLS; c++) {
       if (board[r][c] == 0) {
-        return 0; // Not a tie, empty cell found
+        return 0; // EMPTY CELL
       }
     }
   }
-  return 1; // Board full and no winner: tie
+  return 1;
 }
 
 void send_tie_message(GameSession *game) {
@@ -143,10 +143,8 @@ void send_game_start(int fd, int player_num, int current_player_num) {
   cJSON_AddStringToObject(msg, "type", "start");
   cJSON_AddNumberToObject(msg, "player", player_num);
 
-  // tell this client if it's their turn
   cJSON_AddBoolToObject(msg, "yourTurn", player_num == current_player_num);
 
-  // Also add currentTurn (globally)
   cJSON_AddNumberToObject(msg, "currentTurn", current_player_num);
 
   char *text = cJSON_PrintUnformatted(msg);
@@ -188,7 +186,6 @@ void reset_game(cJSON *json_data, int fd) {
     return;
 
   printf("Current FD %d", game->current_turn_fd);
-  // reset board
   for (int row = 0; row < ROWS; row++) {
     for (int col = 0; col < COLS; col++) {
       printf("\nROW : %d | COL : %d\n", row, col);
@@ -196,7 +193,7 @@ void reset_game(cJSON *json_data, int fd) {
     }
   }
 
-  // send reset message to both
+  // send reset message to both FDs
   cJSON *response = cJSON_CreateObject();
   cJSON_AddStringToObject(response, "type", "reset");
   char *text = cJSON_PrintUnformatted(response);
@@ -207,16 +204,14 @@ void reset_game(cJSON *json_data, int fd) {
   free(text);
   cJSON_Delete(response);
 
-  // pick starting player (once)
   srand(time(NULL));
-  int first_player = (rand() % 2) + 1; // 1 or 2
+  int first_player = (rand() % 2) + 1;
 
   game->current_turn_fd =
       (first_player == 1) ? game->player1_fd : game->player2_fd;
   game->game_active = 1;
   game->nth_turn = 0;
 
-  // tell both clients
   send_game_start(game->player1_fd, 1, first_player);
   send_game_start(game->player2_fd, 2, first_player);
 
@@ -256,7 +251,6 @@ int check_vertical(int board[ROWS][COLS], int col, int player) {
 
 int check_diagonal_down(int board[ROWS][COLS], int row, int col, int player) {
   int start_row = row, start_col = col;
-  // Move to the top-left
   while (start_row > 0 && start_col > 0) {
     start_row--;
     start_col--;
@@ -279,7 +273,6 @@ int check_diagonal_down(int board[ROWS][COLS], int row, int col, int player) {
 
 int check_diagonal_up(int board[ROWS][COLS], int row, int col, int player) {
   int start_row = row, start_col = col;
-  // Move to the bottom-left
   while (start_row < ROWS - 1 && start_col > 0) {
     start_row++;
     start_col--;
@@ -493,7 +486,6 @@ void add_player_to_queue(cJSON *json_data, int fd) {
     return;
   }
 
-  // Add new player to queue
   QueuedPlayer p;
   p.fd = fd;
 
@@ -520,7 +512,6 @@ void add_player_to_queue(cJSON *json_data, int fd) {
 
     create_new_game_session(&p1, &p2);
 
-    // Shift remaining players down
     for (int i = 2; i < queue_size; i++) {
       player_queue[i - 2] = player_queue[i];
     }

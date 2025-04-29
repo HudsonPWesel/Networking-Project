@@ -29,46 +29,6 @@ export function createSocket(username) {
   };
 
   return socket2;
-  new Promise((resolve, reject) => {
-    console.log("Current sockets:", sockets);
-    let socket = new WebSocket(`ws://10.18.102.38:9999/ws`);
-    console.log("Attempting to connect to WebSocket server...");
-
-    // Store socket in sockets object immediately
-    sockets[username] = socket;
-
-    socket.onopen = () => {
-      console.log("WebSocket connected as", username);
-      console.log("Sending join message...");
-
-      try {
-        const joinMsg = JSON.stringify({
-          type: 'join',
-          username: username
-        });
-        console.log("Join message to send:", joinMsg);
-        socket.send(joinMsg);
-        console.log("Join message sent successfully");
-
-        // Only resolve after successful join message sent
-        resolve(socket);
-      } catch (error) {
-        console.error("Error sending join message:", error);
-        reject(error);
-      }
-    };
-
-    socket.onerror = (error) => {
-      console.error("WebSocket error:", error);
-      delete sockets[username]; // Clean up on error
-      reject(error);
-    };
-
-    socket.onclose = (event) => {
-      console.log("WebSocket closed:", event);
-      delete sockets[username]; // Clean up on close
-    };
-  });
 } export function getSocket(username) {
   return sockets[username];
 }

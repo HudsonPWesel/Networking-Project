@@ -92,7 +92,6 @@ int get_user(char *username, char *hashed_password, MYSQL *conn) {
     return 1;
   }
 
-  // Success, continue
   mysql_free_result(res);
   return 0;
 }
@@ -129,11 +128,6 @@ int get_leaderboard(int scores[MAX_LEADERBOARD_ENTRIES],
       index++;
     }
   }
-
-  // While (index < MAX_LEADERBOARD_ENTRIES) {
-  //   usernames[index][0] = '\0'; // Empty username
-  //   scores[index++] = 0;
-  // }
 
   mysql_free_result(res);
   mysql_close(conn);

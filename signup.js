@@ -2,16 +2,6 @@ import { createSocket } from './socket.js'
 
 let socket;
 
-function getSocketStatus() {
-  setInterval(() => {
-    if (socket) {
-      console.log('Current WebSocket State:', {
-        readyState: socket.readyState,
-        readyStateDescription: ['Connecting', 'Open', 'Closing', 'Closed'][socket.readyState]
-      });
-    }
-  }, 5000);
-}
 
 function main() {
   const username = document.getElementById("username").value;

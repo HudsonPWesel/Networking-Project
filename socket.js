@@ -5,7 +5,7 @@ export function createSocket(username) {
     console.warn(`Socket for ${username} already open`);
     return sockets[username];
   }
-  let socket2 = new WebSocket(`ws://10.18.102.38:9999/ws`);
+  let socket2 = new WebSocket(`ws://10.18.102.38:4242/ws`);
 
   socket2.onopen = () => {
     console.log('Second socket OPEN:',);

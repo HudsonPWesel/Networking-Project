@@ -6,7 +6,7 @@
 #include <strings.h>
 #include <sys/socket.h>
 #include <unistd.h>
-#define PORT 9999
+#define PORT 4242
 #define MAXLINE 1024
 #define GETSOCKETERRNO() (errno)
 #define LISTEN_BACKLOG 50

@@ -46,6 +46,7 @@ void send_tie_message(GameSession *game);
 void send_leaderboard_message(cJSON *json_data, int current_fd);
 int increase_player_score(const char *username);
 void handle_disconnect(int disconnected_fd);
+void send_redirect_message(int fd);
 
 int check_horizontal(int board[ROWS][COLS], int row, int player);
 int check_vertical(int board[ROWS][COLS], int col, int player);

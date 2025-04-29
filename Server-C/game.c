@@ -425,12 +425,22 @@ void handle_disconnect(int disconnected_fd) {
 
       increase_player_score(winner_username); // <-- Update their score
     }
-
+    send_redirect_message(winner_fd);
     game->game_active = 0; // End the game
     // TODO: REDIRECT TO WAITING ROOM ON WIN
   }
 }
+void send_redirect_message(int fd) {
+  cJSON *msg = cJSON_CreateObject();
+  cJSON_AddStringToObject(msg, "type", "redirect");
+  cJSON_AddStringToObject(msg, "redirect", "waiting-room.html");
 
+  char *text = cJSON_PrintUnformatted(msg);
+  send_websocket_message(fd, text);
+
+  free(text);
+  cJSON_Delete(msg);
+}
 void send_leaderboard_message(cJSON *json_data, int current_fd) {
   cJSON *msg = cJSON_CreateObject();
   cJSON_AddStringToObject(msg, "type", "leaderboard");
